@@ -41,6 +41,9 @@ public class SupabaseStorage {
 
     // 업로드 후 공개 URL 반환. 실패하면 IOException
     public String upload(byte[] bytes, String ext) throws IOException {
+        if (baseUrl == null || baseUrl.isEmpty() || serviceKey == null || serviceKey.isEmpty()) {
+            throw new IllegalArgumentException("사진 저장소(Supabase)가 설정되지 않았습니다. FASHION_SUPABASE_URL / FASHION_SUPABASE_SERVICE_KEY를 확인하세요.");
+        }
         String path = UUID.randomUUID() + "." + ext;
         HttpRequest request = authorized(objectUrl(path))
                 .header("Content-Type", CONTENT_TYPES.get(ext))
