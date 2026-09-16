@@ -25,7 +25,7 @@
     </repositories>
 
     <dependencies>
-        <!-- 표준프레임워크 실행환경: spring-webmvc 5.3.20, mybatis 3.5.10, mybatis-spring 2.0.7, commons-dbcp2, log4j2, jstl 포함 -->
+        <!-- 표준프레임워크 실행환경: spring-webmvc 5.3.20, mybatis 3.5.10, mybatis-spring 2.0.7, log4j2 포함 -->
         <dependency>
             <groupId>org.egovframe.rte</groupId>
             <artifactId>org.egovframe.rte.ptl.mvc</artifactId>
@@ -48,6 +48,22 @@
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
             <scope>provided</scope>
+        </dependency>
+        <!-- eGov 모듈에는 test 스코프로만 있어 직접 선언한다 (참고 프로젝트와 동일) -->
+        <dependency>
+            <groupId>javax.servlet.jsp.jstl</groupId>
+            <artifactId>jstl-api</artifactId>
+            <version>1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>taglibs</groupId>
+            <artifactId>standard</artifactId>
+            <version>1.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-dbcp2</artifactId>
+            <version>2.9.0</version>
         </dependency>
 
         <dependency>
