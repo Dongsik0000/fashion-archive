@@ -45,10 +45,16 @@ App.login = (function () {
 
         handleLoginResult = function (res) {
             if (res.code === '00') {
-                location.href = contextPath + '/';
+                location.href = contextPath + nextPath();
             } else {
                 App.error('로그인 실패', res.message);
             }
+        },
+
+        // ?next=/photos/4 처럼 이 사이트 안의 경로만 허용한다 ("//evil.com" 같은 외부 이동 차단)
+        nextPath = function () {
+            var next = new URLSearchParams(location.search).get('next') || '';
+            return /^\/(?!\/)/.test(next) ? next : '/';
         };
 
     return {

@@ -4,7 +4,11 @@
 
     <!-- 사진 목록 -->
     <select id="selectPhotoList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
-        SELECT p.id, p.title, p.image_url, p.created_at
+        SELECT p.id, p.title, p.image_url, p.created_at,
+               (SELECT string_agg(c.slug, ',' ORDER BY c.sort_order)
+                  FROM photo_category pc
+                  JOIN category c ON c.id = pc.category_id
+                 WHERE pc.photo_id = p.id) AS category_slugs
         FROM photo p
         <if test="slug != null">
         WHERE EXISTS (

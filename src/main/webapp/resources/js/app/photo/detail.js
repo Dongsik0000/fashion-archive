@@ -10,12 +10,15 @@ App.photoDetail = (function () {
             labels:     document.getElementById('labelOptions'),
             linkEmpty:  document.getElementById('linkEmpty'),
             error:      document.getElementById('detailError'),
+            editToggle: document.getElementById('editToggle'),      // 관리자만 존재
             deleteBtn:  document.getElementById('deletePhotoBtn'),   // 관리자만 존재
             addForm:    document.getElementById('linkAddForm')       // 관리자만 존재
         },
 
         settings = {
             photoId: document.getElementById('photoDetail').dataset.id,
+            editing: false,          // 관리자도 기본은 읽기 화면
+            groups: {},              // 마지막으로 받은 linkGroups (모드 전환 시 다시 그리기용)
             submitting: false
         },
 
@@ -32,13 +35,16 @@ App.photoDetail = (function () {
         },
 
         bindEvent = function () {
+            if (m$.editToggle) {
+                m$.editToggle.addEventListener('click', toggleEditing);
+            }
             if (m$.deleteBtn) {
                 m$.deleteBtn.addEventListener('click', deletePhoto);
             }
             if (m$.addForm) {
                 m$.addForm.addEventListener('submit', function (e) {
                     e.preventDefault();
-                    send(url.addLink, App.formToObject(m$.addForm));
+                    addLink();
                 });
             }
         },
@@ -55,6 +61,16 @@ App.photoDetail = (function () {
                 .catch(function () {});
         },
 
+        /* ---------- 읽기 / 편집 모드 ---------- */
+
+        toggleEditing = function () {
+            settings.editing = !settings.editing;
+            m$.article.dataset.editing = String(settings.editing);
+            m$.editToggle.textContent = settings.editing ? '편집 끝내기' : '편집';
+            m$.editToggle.setAttribute('aria-pressed', String(settings.editing));
+            renderLinkGroups(settings.groups);
+        },
+
         /* ---------- 렌더링. 서버 값은 textContent/속성으로만 넣는다 ---------- */
 
         render = function (data) {
@@ -66,13 +82,12 @@ App.photoDetail = (function () {
             m$.date.textContent = formatDate(photo.created_at);
             document.title = photo.title + ' - Fashion Archive';
 
-            if (photo.memo) {
-                m$.memo.textContent = photo.memo;
-                m$.memo.hidden = false;
-            }
+            m$.memo.hidden = !photo.memo;
+            m$.memo.textContent = photo.memo || '';
 
             renderCategories(data.categoryIds || []);
-            renderLinkGroups(data.linkGroups || {});
+            settings.groups = data.linkGroups || {};
+            renderLinkGroups(settings.groups);
             m$.article.hidden = false;
         },
 
@@ -94,7 +109,7 @@ App.photoDetail = (function () {
             var labels = Object.keys(groups);
             m$.groups.textContent = '';
             m$.labels.textContent = '';
-            m$.linkEmpty.hidden = labels.length > 0 || isAdmin;
+            m$.linkEmpty.hidden = labels.length > 0 || settings.editing;
 
             labels.forEach(function (label) {
                 var links = groups[label],
@@ -111,7 +126,7 @@ App.photoDetail = (function () {
                 ul.className = 'link-list';
                 links.forEach(function (link) {
                     var li = document.createElement('li');
-                    li.appendChild(isAdmin ? linkEditForm(link) : linkRow(link));
+                    li.appendChild(settings.editing ? linkEditForm(link) : linkRow(link));
                     ul.appendChild(li);
                 });
 
@@ -122,7 +137,7 @@ App.photoDetail = (function () {
             });
         },
 
-        // 방문자용: 제목 + 도메인, 그 아래 메모(왜 이 제품인지). 화살표 대신 어디로 가는지를 보여준다
+        // 읽기용: 제목 + 도메인, 그 아래 메모(왜 이 제품인지). 화살표 대신 어디로 가는지를 보여준다
         linkRow = function (link) {
             var wrap = document.createElement('div'),
                 a = document.createElement('a'),
@@ -155,7 +170,7 @@ App.photoDetail = (function () {
             return wrap;
         },
 
-        // 관리자용: 인라인 수정 폼
+        // 편집용: 인라인 수정 폼
         linkEditForm = function (link) {
             var form = document.createElement('form'),
                 label = input('text', 'itemLabel', link.item_label, '아이템'),
@@ -187,19 +202,29 @@ App.photoDetail = (function () {
 
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
-                send(url.link(link.id), App.formToObject(form));
+                send(url.link(link.id), App.formToObject(form), '저장했어요.');
             });
             del.addEventListener('click', function () {
                 if (!confirm('이 링크를 삭제할까요?')) return;
-                send(url.link(link.id) + '/delete');
+                send(url.link(link.id) + '/delete', null, '링크를 삭제했어요.');
             });
             return form;
         },
 
         /* ---------- 관리자 동작 ---------- */
 
+        // 같은 아이템에 여러 링크를 연달아 넣는 흐름: 아이템 이름은 남기고 나머지만 비운다
+        addLink = function () {
+            var label = m$.addForm.elements.itemLabel.value;
+            send(url.addLink, App.formToObject(m$.addForm), '링크를 추가했어요.', function () {
+                m$.addForm.reset();
+                m$.addForm.elements.itemLabel.value = label;
+                m$.addForm.elements.url.focus();
+            });
+        },
+
         // 성공하면 다시 불러와 서버가 정한 그룹 순서를 그대로 쓴다
-        send = function (target, data) {
+        send = function (target, data, successMessage, afterSuccess) {
             if (settings.submitting) return;
             settings.submitting = true;
             App.post(target, data)
@@ -208,7 +233,8 @@ App.photoDetail = (function () {
                         App.error('실패', res.message);
                         return;
                     }
-                    if (m$.addForm) m$.addForm.reset();
+                    App.toast(successMessage);
+                    if (afterSuccess) afterSuccess();
                     load();
                 })
                 .catch(function () {})
