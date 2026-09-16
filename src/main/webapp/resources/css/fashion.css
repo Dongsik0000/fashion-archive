@@ -95,10 +95,13 @@ img { display: block; max-width: 100%; }
 .link-label small { font-family: var(--sans); font-weight: 400; font-size: 13px; color: var(--mute); }
 .link-list { list-style: none; margin-bottom: 8px; }
 .link-list > li + li { border-top: 1px solid var(--line); }
-.link-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 12px 0; }
+.link-item { padding: 12px 0; }
+.link-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
 .link-row:hover .link-name { text-decoration: underline; text-underline-offset: 3px; }
 .link-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .link-host { flex: none; font-size: 13px; color: var(--mute); }
+/* 주인의 한 줄 코멘트: 링크보다 한 단계 조용하게 */
+.link-note { margin-top: 5px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); max-width: 56ch; }
 
 /* ---------- 폼 (공통) ---------- */
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--mute); }
@@ -119,8 +122,9 @@ img { display: block; max-width: 100%; }
 
 /* ---------- 상세: 관리자 링크 편집 ---------- */
 .link-form { display: grid; grid-template-columns: 110px minmax(0, 1fr) 150px auto auto; gap: 8px; align-items: center; padding: 10px 0; }
-.link-form input { min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); font: inherit; font-size: 14px; color: var(--ink); }
-.link-form input:focus { outline: none; border-color: var(--ink); }
+.link-form input, .link-form textarea { min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); font: inherit; font-size: 14px; color: var(--ink); }
+.link-form textarea { grid-column: 1 / -1; resize: vertical; line-height: 1.5; }
+.link-form input:focus, .link-form textarea:focus { outline: none; border-color: var(--ink); }
 .link-add { margin-top: 28px; padding-top: 18px; border-top: 1px dashed var(--line); }
 .link-add .link-form { grid-template-columns: 110px minmax(0, 1fr) 150px auto; }
 
@@ -155,7 +159,7 @@ img { display: block; max-width: 100%; }
   .photo-detail { grid-template-columns: 1fr; gap: 28px; }
   .photo-detail-image { position: static; }
   .link-form, .link-add .link-form { grid-template-columns: 1fr 1fr; }
-  .link-form input[name=url] { grid-column: 1 / -1; }
+  .link-form input[name=url], .link-form textarea { grid-column: 1 / -1; }
   .photo-grid { gap: 28px 16px; }
 }
 @media (max-width: 480px) {

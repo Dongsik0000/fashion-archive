@@ -186,7 +186,7 @@ public class PhotoApiController {
 
     /* ---------- 제품 링크 추가/수정/삭제 ---------- */
 
-    // 추가. JSON: itemLabel, url, title
+    // 추가. JSON: itemLabel, url, title, note
     @ResponseBody
     @PostMapping("/api/admin/photos/{photoId}/links")
     public Response addLink(@PathVariable long photoId, @RequestBody HashMap<String, Object> param) {
@@ -206,7 +206,7 @@ public class PhotoApiController {
         }
     }
 
-    // 수정. JSON: itemLabel, url, title
+    // 수정. JSON: itemLabel, url, title, note
     @ResponseBody
     @PostMapping("/api/admin/links/{linkId}")
     public Response updateLink(@PathVariable long linkId, @RequestBody HashMap<String, Object> param) {
@@ -260,6 +260,7 @@ public class PhotoApiController {
         link.put("itemLabel", Validation.requireText(param.get("itemLabel"), "아이템", 30));
         link.put("url", Validation.requireHttpUrl(param.get("url")));
         link.put("title", Validation.optionalText(param.get("title"), "제품 이름", 100));
+        link.put("note", Validation.optionalText(param.get("note"), "메모", 500));
         return link;
     }
 
