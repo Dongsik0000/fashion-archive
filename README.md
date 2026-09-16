@@ -53,5 +53,6 @@ docker run --rm -p 8080:8080 \
   fashion-archive
 ```
 
-- Supabase Postgres에 붙일 때는 대시보드 Connect › JDBC 항목의 URL을 쓴다. 로컬 Docker에서 호스트 Postgres에 붙을 때는 `host.docker.internal`.
+- Supabase Postgres에 붙일 때: `FASHION_DB_URL=jdbc:postgresql://db.<project-ref>.supabase.co:5432/postgres`, `FASHION_DB_USER=postgres`, `FASHION_DB_PASSWORD=<Supabase DB 비밀번호>`. 로컬 Docker에서 호스트 Postgres에 붙을 때는 `host.docker.internal`.
+- `FASHION_SUPABASE_SERVICE_KEY`는 대시보드 Project Settings › API Keys › **Legacy API keys** 탭의 `service_role` 값이다.
 - 컨테이너 호스팅(Railway / Render / Fly.io 등)은 Git 연결 후 위 환경변수를 입력하면 된다. 각 서비스의 현재 요금·무료 티어는 배포 시점에 확인한다.
