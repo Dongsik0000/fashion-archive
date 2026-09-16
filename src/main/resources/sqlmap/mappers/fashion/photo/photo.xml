@@ -4,7 +4,7 @@
 
     <!-- 사진 목록 -->
     <select id="selectPhotoList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
-        SELECT p.id, p.title, p.image_url, pcreated_at
+        SELECT p.id, p.title, p.image_url, p.created_at
         FROM photo p
         <if test="slug != null">
         WHERE EXISTS (
