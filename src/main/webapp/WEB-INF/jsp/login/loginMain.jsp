@@ -18,11 +18,11 @@
     <form id="loginForm" autocomplete="off">
         <label>
             <span>아이디</span>
-            <input type="text" name="loginId" required autofocus>
+            <input id="user_id" type="text" name="loginId" required autofocus>
         </label>
         <label>
             <span>비밀번호</span>
-            <input type="password" name="password" required>
+            <input id="user_pw" type="password" name="password" required>
         </label>
         <button type="submit" class="btn btn-primary">로그인</button>
     </form>

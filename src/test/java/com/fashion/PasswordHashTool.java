@@ -13,3 +13,4 @@ public class PasswordHashTool {
         System.out.println(new BCryptPasswordEncoder().encode(raw));
     }
 }
+
