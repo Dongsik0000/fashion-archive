@@ -2001,7 +2001,10 @@ git commit -m "feat: photo read service with link grouping"
 
 ### Task 11: 목록·상세 화면
 
-> **JSP·CSS는 작성 완료** (`list.jsp`, `detail.jsp`, `admin/photoForm.jsp`, `fashion.css`, `fashionLayout.jsp`). 이 Task에서 남은 것은 `PhotoController`뿐이다. JSP가 기대하는 모델: 목록 `pageTitle`, `currentSlug`(카테고리일 때), `photos`(id, title, image_url, created_at) / 상세 `photo`, `categoryIds`, `linkGroups`, `isAdmin`. `categoryNames`는 쓰지 않는다(`categories` + `categoryIds`로 계절색 점을 그린다).
+> **구조 변경 (사용자 규칙)**: 화면 컨트롤러(`PhotoController`)는 뷰 이름만 반환하고 경로 값(`currentSlug`, `photoId`)만 모델에 싣는다. 데이터·기능은 전부 `PhotoApiController`(JSON) + 화면 JS 렌더링 (참고 프로젝트의 `ManagementController` / `UserMgmtApiController` 조합). JSP·CSS·JS(`list.js`, `detail.js`)는 작성 완료.
+>
+> API 계약 — `POST /api/photos/list` `{slug}` → `data: [{id, title, image_url, created_at}]` / `POST /api/photos/detail` `{id}` → `data: {photo, categoryIds, linkGroups}` (없으면 `code 99`). `groupLinks`는 `PhotoApiController`의 static 메서드, 테스트는 `PhotoApiControllerTest`.
+> 4·5단계 API(`/api/admin/**`)의 URL·JSON 모양은 아래 Task 14·16 표와 같고 `detail.js`/`photoForm.jsp`가 이미 그 계약으로 작성되어 있다. 조회 로직을 서비스에 두라는 아래 Task 10·11 본문은 이 규칙으로 대체한다.
 
 **Files:**
 - Modify: `src/main/java/com/fashion/photo/controller/PhotoController.java`

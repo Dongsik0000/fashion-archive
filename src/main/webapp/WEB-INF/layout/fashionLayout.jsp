@@ -6,13 +6,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <%-- 카테고리 페이지면 "여름 - Fashion Archive". 상세 페이지 제목은 detail.js가 document.title로 바꾼다 --%>
+    <c:forEach var="cat" items="${categories}"><c:if test="${cat.slug eq currentSlug}"><c:set var="pageTitle" value="${cat.name}"/></c:if></c:forEach>
     <title><c:out value="${empty pageTitle ? 'Fashion Archive' : pageTitle.concat(' - Fashion Archive')}"/></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap">
     <link rel="stylesheet" href="<c:url value='/resources/css/reset.css'/>">
     <link rel="stylesheet" href="<c:url value='/resources/css/fashion.css'/>">
-    <script>var contextPath = '${pageContext.request.contextPath}';</script>
+    <script>
+        var contextPath = '${pageContext.request.contextPath}';
+        // 화면 JS가 slug → 이름/색을 찾을 때 쓴다. 값은 category 테이블(관리자만 수정)
+        var categories = [<c:forEach var="cat" items="${categories}" varStatus="st">{id: ${cat.id}, slug: '${cat.slug}', name: '<c:out value="${cat.name}"/>'}<c:if test="${not st.last}">, </c:if></c:forEach>];
+        var isAdmin = ${not empty sessionScope.loginId};
+    </script>
     <script src="<c:url value='/resources/js/common/common.js'/>"></script>
 </head>
 <%-- data-season: 현재 카테고리 slug. CSS의 --season 색이 이 값으로 정해진다 --%>
