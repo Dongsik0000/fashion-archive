@@ -35,7 +35,6 @@
     <!-- web.xml의 multipart-config를 사용. 빈 이름은 반드시 multipartResolver -->
     <bean id="multipartResolver" class="org.springframework.web.multipart.support.StandardServletMultipartResolver" />
 
-    <!-- LoginInterceptor는 2단계(Task 6)에서 생성하면서 주석을 푼다
     <mvc:interceptors>
         <mvc:interceptor>
             <mvc:mapping path="/admin/**" />
@@ -43,5 +42,4 @@
             <bean class="com.fashion.cmmn.interceptor.LoginInterceptor" />
         </mvc:interceptor>
     </mvc:interceptors>
-    -->
 </beans>
