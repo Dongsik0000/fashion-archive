@@ -60,8 +60,8 @@
 | `POST /api/admin/photos` | multipart: `file`, `title`, `memo`, `categoryIds[]` | Storage 업로드 → INSERT. 응답 `data.id` | 로그인 |
 | `POST /api/admin/photos/{id}` | JSON `{title, memo, categoryIds[]}` | 사진 정보 수정 | 로그인 |
 | `POST /api/admin/photos/{id}/delete` | 없음 | 사진 삭제 (DB CASCADE → Storage 파일 삭제) | 로그인 |
-| `POST /api/admin/photos/{id}/links` | JSON `{itemLabel, url, title}` | 링크 추가 | 로그인 |
-| `POST /api/admin/links/{linkId}` | JSON `{itemLabel, url, title}` | 링크 수정 | 로그인 |
+| `POST /api/admin/photos/{id}/links` | JSON `{itemLabel, url, title, note}` | 링크 추가 | 로그인 |
+| `POST /api/admin/links/{linkId}` | JSON `{itemLabel, url, title, note}` | 링크 수정 | 로그인 |
 | `POST /api/admin/links/{linkId}/delete` | 없음 | 링크 삭제 | 로그인 |
 
 - 응답 코드: `Constants.SUCCESS="00"`, `Constants.FAIL="99"`, 로그인 실패 `"01"`. 검증 실패는 `FAIL` + `message`.
@@ -172,6 +172,7 @@ CREATE TABLE product_link (
   item_label VARCHAR(30) NOT NULL,
   url        TEXT        NOT NULL,
   title      VARCHAR(100),
+  note       TEXT,                                -- 왜 이 제품인지 (선택, 500자)
   sort_order INT         NOT NULL DEFAULT 0
 );
 CREATE INDEX ON product_link (photo_id, item_label, sort_order);
@@ -192,6 +193,7 @@ CREATE INDEX ON product_link (photo_id, item_label, sort_order);
 | 카테고리 | ≥1개, 존재하는 id만 | `FAIL` + 메시지 |
 | 링크 URL | 필수. `java.net.URI` 파싱 후 scheme이 http/https | `FAIL` + 메시지 |
 | item_label | 필수, trim 후 ≤30자 | `FAIL` + 메시지 |
+| 링크 note | 선택, trim 후 ≤500자 | `FAIL` + 메시지 |
 
 - JSP 출력은 전부 이스케이프(`<c:out>` / `fn:escapeXml`). JS로 그리는 부분은 `textContent`만 사용.
 - CSRF: `/api/admin/**`는 인터셉터에서 `X-Requested-With: XMLHttpRequest` 헤더를 요구한다(교차 출처에서는 이 헤더를 붙일 수 없어 단순 폼 전송이 차단됨). 세션 쿠키는 `SameSite=Lax` (`META-INF/context.xml`의 `CookieProcessor`).

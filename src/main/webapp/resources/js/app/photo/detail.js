@@ -122,12 +122,14 @@ App.photoDetail = (function () {
             });
         },
 
-        // 방문자용: 제목 + 도메인. 화살표 대신 어디로 가는지를 보여준다
+        // 방문자용: 제목 + 도메인, 그 아래 메모(왜 이 제품인지). 화살표 대신 어디로 가는지를 보여준다
         linkRow = function (link) {
-            var a = document.createElement('a'),
+            var wrap = document.createElement('div'),
+                a = document.createElement('a'),
                 name = document.createElement('span'),
                 host = hostOf(link.url);
 
+            wrap.className = 'link-item';
             a.className = 'link-row';
             a.href = link.url;
             a.target = '_blank';
@@ -142,7 +144,15 @@ App.photoDetail = (function () {
                 hostEl.textContent = host;
                 a.appendChild(hostEl);
             }
-            return a;
+            wrap.appendChild(a);
+
+            if (link.note) {
+                var note = document.createElement('p');
+                note.className = 'link-note';
+                note.textContent = link.note;
+                wrap.appendChild(note);
+            }
+            return wrap;
         },
 
         // 관리자용: 인라인 수정 폼
@@ -151,6 +161,7 @@ App.photoDetail = (function () {
                 label = input('text', 'itemLabel', link.item_label, '아이템'),
                 urlInput = input('url', 'url', link.url, 'https://'),
                 title = input('text', 'title', link.title || '', '제품 이름 (선택)'),
+                note = document.createElement('textarea'),
                 save = button('submit', 'btn btn-sm', '저장'),
                 del = button('button', 'btn btn-sm btn-danger', '삭제');
 
@@ -160,11 +171,19 @@ App.photoDetail = (function () {
             title.maxLength = 100;
             label.required = urlInput.required = true;
 
+            note.name = 'note';
+            note.rows = 2;
+            note.maxLength = 500;
+            note.placeholder = '왜 이 제품인지 (선택)';
+            note.setAttribute('aria-label', '메모');
+            note.value = link.note || '';
+
             form.appendChild(label);
             form.appendChild(urlInput);
             form.appendChild(title);
             form.appendChild(save);
             form.appendChild(del);
+            form.appendChild(note);
 
             form.addEventListener('submit', function (e) {
                 e.preventDefault();

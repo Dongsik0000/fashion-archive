@@ -33,6 +33,7 @@
                         <input type="url" name="url" placeholder="https://" aria-label="URL" required>
                         <input type="text" name="title" maxlength="100" placeholder="제품 이름 (선택)" aria-label="제품 이름">
                         <button type="submit" class="btn btn-sm btn-primary">추가</button>
+                        <textarea name="note" rows="2" maxlength="500" placeholder="왜 이 제품인지 (선택) — 예: 소매를 접으면 사진이랑 같은 실루엣" aria-label="메모"></textarea>
                     </form>
                 </div>
             </c:if>

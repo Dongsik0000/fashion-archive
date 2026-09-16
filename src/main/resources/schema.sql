@@ -37,6 +37,7 @@ CREATE TABLE product_link (
   item_label VARCHAR(30) NOT NULL,
   url        TEXT        NOT NULL,
   title      VARCHAR(100),
+  note       TEXT,                                -- 왜 이 제품인지 (선택)
   sort_order INT         NOT NULL DEFAULT 0
 );
 CREATE INDEX ON product_link (photo_id, item_label, sort_order);
