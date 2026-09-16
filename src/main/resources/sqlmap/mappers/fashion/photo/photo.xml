@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fashion.photo.dao.PhotoDAO">
+
+    <!-- 사진 목록 -->
+    <select id="selectPhotoList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT p.id, p.title, p.image_url, pcreated_at
+        FROM photo p
+        <if test="slug != null">
+        WHERE EXISTS (
+            SELECT 1
+            FROM photo_category pc
+            JOIN category c ON c.id = pc.category_id
+            WHERE pc.photo_id = p.id
+            AND c.slug = #{slug})
+        </if>
+        ORDER BY p.created_at DESC, p.id DESC
+    </select>
+
+    <!-- 사진 1장 -->
+    <select id="selectPhoto" parameterType="java.lang.Long" resultType="java.util.HashMap">
+        SELECT id, owner_id, title, memo, image_url, created_at
+        FROM photo
+        WHERE id = #{id}
+    </select>
+
+    <!-- 사진이 속한 카테고리 id 목록 -->
+    <select id="selectPhotoCategoryIds" parameterType="java.lang.Long" resultType="java.lang.Integer">
+        SELECT category_id
+        FROM photo_category
+        WHERE photo_id = #{photoId}
+    </select>
+
+    <!-- 사진 등록. 생성된 id는 파라미터 Map의 "id" 키로 돌아온다 -->
+    <insert id="insertPhoto" parameterType="java.util.HashMap" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO photo (owner_id, title, memo, image_url)
+        VALUES (#{ownerId}, #{title}, #{memo}, #{imageUrl})
+    </insert>
+
+    <update id="updatePhoto" parameterType="java.util.HashMap">
+        UPDATE photo
+           SET title = #{title},
+               memo  = #{memo}
+         WHERE id = #{id}
+    </update>
+
+    <!-- photo_category, product_link는 ON DELETE CASCADE로 함께 지워진다 -->
+    <delete id="deletePhoto" parameterType="java.lang.Long">
+        DELETE FROM photo WHERE id = #{id}
+    </delete>
+
+    <delete id="deletePhotoCategories" parameterType="java.lang.Long">
+        DELETE FROM photo_category WHERE photo_id = #{photoId}
+    </delete>
+
+    <insert id="insertPhotoCategories" parameterType="java.util.HashMap">
+        INSERT INTO photo_category (photo_id, category_id)
+        VALUES
+        <foreach collection="categoryIds" item="categoryId" separator=",">
+            (#{photoId}, #{categoryId})
+        </foreach>
+    </insert>
+
+</mapper>
