@@ -4,14 +4,25 @@
         <Console name="console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n" />
         </Console>
+        <!-- Tomcat logs/ 아래에 앱 로그를 남긴다 (catalina.base 기준) -->
+        <RollingFile name="file" fileName="${sys:catalina.base}/logs/fashion-app.log"
+                     filePattern="${sys:catalina.base}/logs/fashion-app.%d{yyyy-MM-dd}.log">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n" />
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy max="14" />
+        </RollingFile>
     </Appenders>
     <Loggers>
         <!-- 매퍼 namespace가 com.fashion.* 이므로 이 설정으로 SQL이 찍힌다 -->
         <Logger name="com.fashion" level="DEBUG" additivity="false">
             <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
         </Logger>
         <Root level="INFO">
             <AppenderRef ref="console" />
+            <AppenderRef ref="file" />
         </Root>
     </Loggers>
 </Configuration>
