@@ -2001,6 +2001,8 @@ git commit -m "feat: photo read service with link grouping"
 
 ### Task 11: 목록·상세 화면
 
+> **JSP·CSS는 작성 완료** (`list.jsp`, `detail.jsp`, `admin/photoForm.jsp`, `fashion.css`, `fashionLayout.jsp`). 이 Task에서 남은 것은 `PhotoController`뿐이다. JSP가 기대하는 모델: 목록 `pageTitle`, `currentSlug`(카테고리일 때), `photos`(id, title, image_url, created_at) / 상세 `photo`, `categoryIds`, `linkGroups`, `isAdmin`. `categoryNames`는 쓰지 않는다(`categories` + `categoryIds`로 계절색 점을 그린다).
+
 **Files:**
 - Modify: `src/main/java/com/fashion/photo/controller/PhotoController.java`
 - Modify: `src/main/webapp/WEB-INF/jsp/fashion/photo/list.jsp`
