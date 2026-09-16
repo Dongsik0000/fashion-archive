@@ -18,4 +18,16 @@ public class CmmnDAO {
     public List<Map<String, Object>> selectCategoryList() {
         return sqlSession.selectList(NS + "selectCategoryList");
     }
+
+    public Map<String, Object> selectUserByLoginId(String loginId) {
+        return sqlSession.selectOne(NS + "selectUserByLoginId", loginId);
+    }
+
+    public int countUsers() {
+        return sqlSession.selectOne(NS + "countUsers");
+    }
+
+    public void insertUser(Map<String, Object> param) {
+        sqlSession.insert(NS + "insertUser", param);
+    }
 }

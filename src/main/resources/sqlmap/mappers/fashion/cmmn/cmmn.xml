@@ -8,4 +8,19 @@
          ORDER BY sort_order
     </select>
 
+    <select id="selectUserByLoginId" parameterType="string" resultType="java.util.HashMap">
+        SELECT id, login_id, password_hash, role
+          FROM users
+         WHERE login_id = #{loginId}
+    </select>
+
+    <select id="countUsers" resultType="int">
+        SELECT COUNT(*) FROM users
+    </select>
+
+    <insert id="insertUser" parameterType="java.util.HashMap">
+        INSERT INTO users (login_id, password_hash, role)
+        VALUES (#{loginId}, #{passwordHash}, 'ADMIN')
+    </insert>
+
 </mapper>
