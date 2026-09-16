@@ -12,6 +12,7 @@
 
 ## Global Constraints
 
+- **조회 결과 `Map`의 키는 컬럼명 그대로(snake_case: `login_id`, `image_url`, `item_label`)**. MyBatis의 `mapUnderscoreToCamelCase`는 `resultType=HashMap`에 적용되지 않는다(`MapWrapper.findProperty`가 이름을 그대로 반환. 참고 프로젝트도 `user_lock_yn`처럼 사용). 파라미터 Map의 `#{loginId}` 같은 이름은 우리가 정하므로 camelCase 유지.
 - 패키지 루트 `com.fashion`. 계층: `controller`(뷰 이름 반환) / `ApiController`(`@ResponseBody`, `Response.of`) / `service` 인터페이스 + `impl` / `dao`(`SqlSessionTemplate` + `NS` 상수). 파라미터·결과는 `Map<String,Object>`.
 - Servlet 3.1 / `javax.servlet`. Spring 6·Jakarta·Spring Boot 사용 금지.
 - 설정은 XML. `web.xml` → `/WEB-INF/config/dispatcher-servlet.xml` + `classpath:spring/context-datasource.xml`. 값은 `egovProps/globals.properties`, 비밀값은 환경변수(`FASHION_*`)로만.
@@ -423,7 +424,6 @@ Globals.Fashion.Admin.PasswordHash=${FASHION_ADMIN_PASSWORD_HASH}
 <!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
 <configuration>
     <settings>
-        <setting name="mapUnderscoreToCamelCase" value="true" />
         <setting name="jdbcTypeForNull" value="NULL" />
         <setting name="logImpl" value="LOG4J2" />
         <setting name="callSettersOnNulls" value="true" />
@@ -1265,7 +1265,7 @@ git commit -m "feat: login interceptor and samesite cookie"
 
 **Interfaces:**
 - Consumes: 빈 `passwordEncoder`, 프로퍼티 `Globals.Fashion.Admin.LoginId/PasswordHash`
-- Produces: `CmmnService.login(String loginId, String rawPassword) → Map<String,Object>|null`(키 `id`, `loginId`, `role`). `CmmnDAO.selectUserByLoginId(String)`, `countUsers()`, `insertUser(Map)`.
+- Produces: `CmmnService.login(String loginId, String rawPassword) → Map<String,Object>|null`(키 `id`, `login_id`, `role`). `CmmnDAO.selectUserByLoginId(String)`, `countUsers()`, `insertUser(Map)`.
 
 - [ ] **Step 1: cmmn.xml에 사용자 SQL 추가**
 
@@ -1311,7 +1311,7 @@ import java.util.Map;
 
 public interface CmmnService {
 
-    // 성공 시 사용자 정보(id, loginId, role), 실패 시 null
+    // 성공 시 사용자 정보(id, login_id, role. 조회 결과 Map의 키는 컬럼명 그대로), 실패 시 null
     Map<String, Object> login(String loginId, String rawPassword);
 }
 ```
@@ -1366,10 +1366,10 @@ public class CmmnServiceImpl implements CmmnService {
     @Override
     public Map<String, Object> login(String loginId, String rawPassword) {
         Map<String, Object> user = cmmnDAO.selectUserByLoginId(loginId);
-        if (user == null || !passwordEncoder.matches(rawPassword, (String) user.get("passwordHash"))) {
+        if (user == null || !passwordEncoder.matches(rawPassword, (String) user.get("password_hash"))) {
             return null;
         }
-        user.remove("passwordHash");
+        user.remove("password_hash");
         return user;
     }
 }
@@ -1498,7 +1498,7 @@ public class CmmnApiController {
             if (user == null) {
                 return Response.of(Constants.LOGIN_FAIL, "아이디 또는 비밀번호를 확인해주세요.", null);
             }
-            session.setAttribute(Constants.SESSION_LOGIN_ID, user.get("loginId"));
+            session.setAttribute(Constants.SESSION_LOGIN_ID, user.get("login_id"));
             session.setAttribute(Constants.SESSION_USER_ID, ((Number) user.get("id")).longValue());
             return Response.of(Constants.SUCCESS);
         } catch (IllegalArgumentException e) {
@@ -1636,14 +1636,14 @@ git commit -m "feat: session login page and api"
 
 **Interfaces:**
 - Produces:
-  - `PhotoDAO.selectPhotoList(String slug|null) → List<Map>`(id, title, imageUrl, createdAt)
-  - `PhotoDAO.selectPhoto(long id) → Map|null`(id, ownerId, title, memo, imageUrl, createdAt)
+  - `PhotoDAO.selectPhotoList(String slug|null) → List<Map>`(id, title, image_url, created_at)
+  - `PhotoDAO.selectPhoto(long id) → Map|null`(id, owner_id, title, memo, image_url, created_at)
   - `PhotoDAO.selectPhotoCategoryIds(long photoId) → List<Integer>`
   - `PhotoDAO.selectPhotoCategoryNames(long photoId) → List<String>`
   - `PhotoDAO.insertPhoto(Map{ownerId,title,memo,imageUrl})` — 실행 후 `param.get("id")`에 생성 키
   - `PhotoDAO.updatePhoto(Map{id,title,memo})`, `deletePhoto(long id) → int`
   - `PhotoDAO.deletePhotoCategories(long photoId)`, `insertPhotoCategories(long photoId, List<Integer> categoryIds)`
-  - `LinkDAO.selectLinkList(long photoId) → List<Map>`(id, photoId, itemLabel, url, title, sortOrder)
+  - `LinkDAO.selectLinkList(long photoId) → List<Map>`(id, photo_id, item_label, url, title, sort_order)
   - `LinkDAO.selectLink(long id) → Map|null`, `insertLink(Map{photoId,itemLabel,url,title})`, `updateLink(Map{id,itemLabel,url,title}) → int`, `deleteLink(long id) → int`
 
 - [ ] **Step 1: photo.xml**
@@ -1916,7 +1916,7 @@ class PhotoServiceImplTest {
     private static Map<String, Object> link(long id, String label) {
         Map<String, Object> m = new HashMap<>();
         m.put("id", id);
-        m.put("itemLabel", label);
+        m.put("item_label", label);
         m.put("url", "https://example.com/" + id);
         return m;
     }
@@ -2024,7 +2024,7 @@ public class PhotoServiceImpl implements PhotoService {
     public static Map<String, List<Map<String, Object>>> groupLinks(List<Map<String, Object>> links) {
         Map<String, List<Map<String, Object>>> groups = new LinkedHashMap<>();
         for (Map<String, Object> link : links) {
-            String label = String.valueOf(link.get("itemLabel"));
+            String label = String.valueOf(link.get("item_label"));
             groups.computeIfAbsent(label, k -> new ArrayList<>()).add(link);
         }
         return groups;
@@ -2139,7 +2139,7 @@ public class PhotoController {
             <c:forEach var="p" items="${photos}">
                 <li>
                     <a href="<c:url value='/photos/${p.id}'/>">
-                        <img src="<c:out value='${p.imageUrl}'/>" alt="<c:out value='${p.title}'/>" loading="lazy">
+                        <img src="<c:out value='${p.image_url}'/>" alt="<c:out value='${p.title}'/>" loading="lazy">
                         <span class="photo-title"><c:out value="${p.title}"/></span>
                     </a>
                 </li>
@@ -2156,7 +2156,7 @@ public class PhotoController {
 <%@ include file="/common/taglib.jsp"%>
 <article class="photo-detail">
     <div class="photo-detail-image">
-        <img src="<c:out value='${photo.imageUrl}'/>" alt="<c:out value='${photo.title}'/>">
+        <img src="<c:out value='${photo.image_url}'/>" alt="<c:out value='${photo.title}'/>">
     </div>
     <div class="photo-detail-body">
         <h1 class="page-title"><c:out value="${photo.title}"/></h1>
@@ -2449,7 +2449,7 @@ git commit -m "feat: supabase storage client"
             throw new IllegalArgumentException("대상을 찾을 수 없습니다.");
         }
         photoDAO.deletePhoto(id);
-        storage.delete((String) photo.get("imageUrl"));
+        storage.delete((String) photo.get("image_url"));
     }
 ```
 import 추가: `com.fashion.cmmn.storage.SupabaseStorage`, `org.springframework.transaction.annotation.Transactional`, `java.io.IOException`.
@@ -2624,7 +2624,7 @@ import 추가: `java.util.Collections`.
         </label>
     </c:if>
     <c:if test="${mode eq 'edit'}">
-        <img class="photo-form-preview" src="<c:out value='${photo.imageUrl}'/>" alt="">
+        <img class="photo-form-preview" src="<c:out value='${photo.image_url}'/>" alt="">
     </c:if>
     <label>
         <span>제목</span>
@@ -2920,7 +2920,7 @@ git commit -m "feat: photo create/edit form and delete action"
                             <c:choose>
                                 <c:when test="${isAdmin}">
                                     <form class="link-form link-edit" data-id="${link.id}">
-                                        <input type="text" name="itemLabel" list="labelOptions" maxlength="30" value="<c:out value='${link.itemLabel}'/>" placeholder="아이템">
+                                        <input type="text" name="itemLabel" list="labelOptions" maxlength="30" value="<c:out value='${link.item_label}'/>" placeholder="아이템">
                                         <input type="url" name="url" value="<c:out value='${link.url}'/>" placeholder="https://">
                                         <input type="text" name="title" maxlength="100" value="<c:out value='${link.title}'/>" placeholder="제목(선택)">
                                         <button type="submit" class="btn">저장</button>
