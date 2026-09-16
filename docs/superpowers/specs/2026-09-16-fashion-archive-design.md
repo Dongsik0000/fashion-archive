@@ -1,6 +1,6 @@
 # Fashion Archive — 설계 문서
 
-작성일: 2026-09-16
+작성일: 2026-09-16 (참고 프로젝트 `C:\dev\workspace\design` 관례 반영판)
 
 ## 1. 목적
 
@@ -13,83 +13,130 @@
 | 등록 주체 | 관리자 1명. 회원 확장 대비로 `photo.owner_id`만 미리 둔다 |
 | 사진 단위 | 코디 사진과 단품 사진 모두. 링크는 `item_label`(아우터, 바지 등)로 묶는다 |
 | 카테고리 | 사진 1장이 여러 카테고리에 속할 수 있다 (다대다) |
-| 스택 | 전통 Spring MVC 6.x (web.xml, 외부 Tomcat 10.1) + JSP + MyBatis + PostgreSQL, JDK 17 |
-| 빌드 | Maven, WAR 패키징 |
-| DB | Supabase PostgreSQL (JDBC, HikariCP). 로컬 개발 시 로컬 Postgres도 가능 |
-| 이미지 저장 | 서버 경유 업로드 → Supabase Storage (REST, Java 표준 HttpClient). DB에는 공개 URL만 저장 |
-| 로그인 | Spring Security 폼 로그인, `users` 테이블, BCrypt |
-| 배포 | `tomcat:10.1-jdk17` Docker 이미지 + WAR. 호스팅(Railway/Render/Fly.io)은 배포 시점에 가격 확인 후 선택 |
+| 프레임워크 | eGovFrame 4.1 (Spring 5.3.20, `javax.servlet`), JSP + Tiles 3, MyBatis, Java 17 실행 / 11 타깃. 참고 프로젝트와 동일 |
+| 설정 방식 | XML (`web.xml`, `dispatcher-servlet.xml`, `context-datasource.xml`) + `egovProps/globals.properties` |
+| 빌드 | Maven, WAR 패키징. 외부 Tomcat 9 |
+| DB | Supabase PostgreSQL. commons-dbcp + `SqlSessionTemplate` |
+| 이미지 저장 | 서버 경유 업로드 → Supabase Storage (REST, Java 표준 `HttpClient`). DB에는 공개 URL만 저장 |
+| 로그인 | 세션 `loginId` + `HandlerInterceptor` (참고 프로젝트 방식). 비밀번호 해시는 **BCrypt** (참고 프로젝트의 SHA-256 대신) |
+| 프런트 | jQuery + `App.post()`(fetch JSON) 모듈 패턴, Pretendard, `reset.css`/`common.css` 골격 재사용 |
+| 배포 | `tomcat:9-jdk17` Docker 이미지 + WAR. 호스팅(Railway/Render/Fly.io)은 배포 시점에 가격 확인 후 선택 |
+| 협업 | 설정·골격은 Claude, 화면·기능은 단계별로 담당을 나눈다 |
+
+### 참고 프로젝트에서 가져오는 것 / 가져오지 않는 것
+
+가져옴: `pom.xml` 골격(eGov 의존성, 버전), `web.xml`·`dispatcher-servlet.xml`·`context-datasource.xml` 구조, Tiles 레이아웃 방식, `Response`/`Constants`/`SessionUtil`/인터셉터 패턴, DAO+`SQL_PATH` 패턴, `common.js`의 `App.ajax/post/get/isEmpty/formToObject`, Pretendard 폰트, `reset.css`, `common.css`.
+
+가져오지 않음: 대시보드·관리 화면과 그 CSS(`style.css`), Chart.js, 감사로그 AOP, Apache POI, commons-net, protobuf, json-simple, hsqldb, log4jdbc, 로그인 실패 잠금(아래 8절 참고).
 
 ### 검토 후 제외한 선택지
 
-- Vercel: Java 네이티브 런타임 없음. 컨테이너 이미지 배포는 가능하나 JVM+Tomcat 운용 적합성 미확인. 이 스택에서는 사용하지 않는다.
-- 브라우저 직접 업로드(서명 URL): 관리자 1명 규모에서 복잡도만 증가.
-- 서버 로컬 디스크 저장: 호스팅 볼륨에 종속, 유실 위험.
+- Vercel: Java 네이티브 런타임 없음. 이 스택에서는 사용하지 않는다.
+- Spring 6 / Jakarta / Tomcat 10: 참고 프로젝트와 맞지 않아 철회.
+- Spring Security 필터 체인: 참고 프로젝트가 인터셉터 방식이므로 동일하게 간다. `spring-security-core`만 BCrypt 용도로 유지.
+- 브라우저 직접 업로드, 서버 로컬 디스크 저장: 앞선 검토대로 제외.
 
 ## 3. 화면과 URL
 
-| URL | 화면 | 권한 |
-|---|---|---|
-| `GET /` | 홈. 상단 6개 카테고리 메뉴, 본문은 최근 사진 그리드 | 공개 |
-| `GET /c/{slug}` | 카테고리별 사진 그리드 | 공개 |
-| `GET /photos/{id}` | 사진 상세. 큰 이미지, 메모, `item_label`별로 묶인 링크 목록(새 탭). 관리자 로그인 시 같은 화면에 링크 추가/수정/삭제 폼 노출 | 공개 |
-| `GET /login`, `POST /login` | 로그인 | 공개 |
-| `GET /admin/photos/new`, `POST /admin/photos` | 사진 등록 (파일, 제목, 메모, 카테고리 체크박스) | ADMIN |
-| `GET /admin/photos/{id}/edit`, `POST /admin/photos/{id}` | 사진 수정 (제목, 메모, 카테고리) | ADMIN |
-| `POST /admin/photos/{id}/delete` | 사진 삭제 | ADMIN |
-| `POST /admin/photos/{id}/links` | 링크 추가 | ADMIN |
-| `POST /admin/links/{linkId}` | 링크 수정 (item_label, url, title) | ADMIN |
-| `POST /admin/links/{linkId}/delete` | 링크 삭제 | ADMIN |
+### 화면 컨트롤러 (뷰 이름 반환)
 
-- 상세 페이지의 관리자 UI: 각 링크가 pre-filled 입력칸(아이템, URL, 제목) + [저장] [삭제]로 표시되고, 하단에 [추가] 폼. `<sec:authorize>`로 노출 제어.
-- 아이템 이름 입력은 자유 텍스트이되, 해당 사진에 이미 있는 이름을 `<datalist>`로 제안한다.
-- 페이지네이션 없음 (전체 조회). 수백 장 이상이 되면 `?page=` 추가.
-- 검색·좋아요·댓글·조회수·회원가입 화면은 범위 밖.
+| URL | 뷰 이름 | 화면 | 권한 |
+|---|---|---|---|
+| `GET /` | `/fashion/photo/list` | 홈. 상단 6개 카테고리 메뉴, 본문은 최근 사진 그리드 | 공개 |
+| `GET /c/{slug}` | `/fashion/photo/list` | 카테고리별 사진 그리드 | 공개 |
+| `GET /photos/{id}` | `/fashion/photo/detail` | 사진 상세. 큰 이미지, 메모, `item_label`별 링크 목록(새 탭). 로그인 시 같은 화면에 추가/수정/삭제 UI 노출 | 공개 |
+| `GET /login` | `/login/loginMain` (레이아웃 없음) | 로그인 | 공개 |
+| `GET /logout` | 리다이렉트 `/` | 세션 무효화 | 로그인 |
+| `GET /admin/photos/new` | `/fashion/admin/photoForm` | 사진 등록 폼 | 로그인 |
+| `GET /admin/photos/{id}/edit` | `/fashion/admin/photoForm` | 사진 수정 폼 | 로그인 |
+
+- Tiles: `/fashion/*/*` → 레이아웃 `fashionLayout.jsp`(헤더에 카테고리 메뉴 + 로그인/로그아웃) + 본문 `/WEB-INF/jsp/fashion/{1}/{2}.jsp`. `/login/*`는 Tiles 패턴에 걸리지 않아 `InternalResourceViewResolver`로 단독 렌더링 (참고 프로젝트와 동일 구조).
+
+### API 컨트롤러 (`@ResponseBody`, `Response.of(code, message, data)`)
+
+| URL | 입력 | 동작 | 권한 |
+|---|---|---|---|
+| `POST /api/login` | JSON `{loginId, password}` | BCrypt 검증 → 세션 `loginId` 저장 | 공개 |
+| `POST /api/admin/photos` | multipart: `file`, `title`, `memo`, `categoryIds[]` | Storage 업로드 → INSERT. 응답 `data.id` | 로그인 |
+| `POST /api/admin/photos/{id}` | JSON `{title, memo, categoryIds[]}` | 사진 정보 수정 | 로그인 |
+| `POST /api/admin/photos/{id}/delete` | 없음 | 사진 삭제 (DB CASCADE → Storage 파일 삭제) | 로그인 |
+| `POST /api/admin/photos/{id}/links` | JSON `{itemLabel, url, title}` | 링크 추가 | 로그인 |
+| `POST /api/admin/links/{linkId}` | JSON `{itemLabel, url, title}` | 링크 수정 | 로그인 |
+| `POST /api/admin/links/{linkId}/delete` | 없음 | 링크 삭제 | 로그인 |
+
+- 응답 코드: `Constants.SUCCESS="00"`, `Constants.FAIL="99"`, 로그인 실패 `"01"`. 검증 실패는 `FAIL` + `message`.
+- 인터셉터 보호 범위: `/admin/**`, `/api/admin/**`. 비로그인 시 Ajax(`X-Requested-With: XMLHttpRequest`)면 `{"sessionExpired":true}`, 화면 요청이면 `/login`으로 리다이렉트.
+- 상세 페이지 관리자 UI: 각 링크가 입력칸(아이템, URL, 제목) + [저장] [삭제], 하단에 [추가] 폼. 저장/삭제/추가는 `App.post()`로 호출 후 해당 영역만 다시 그린다. 아이템 이름은 `<datalist>`로 기존 이름 제안.
+- 페이지네이션 없음. 검색·좋아요·댓글·조회수·회원가입 화면은 범위 밖.
 
 ## 4. 프로젝트 구조
 
 ```
 fashion-archive/
-├── pom.xml
-├── Dockerfile
-├── src/main/java/com/example/fashion/
-│   ├── config/      WebConfig, DataConfig, SecurityConfig
-│   ├── controller/  PhotoController (/, /c/{slug}, /photos/{id}), AdminController (/admin/**)
-│   ├── service/     PhotoService (트랜잭션, 링크 그룹핑), ImageStorage (Supabase Storage HTTP)
-│   ├── mapper/      PhotoMapper, CategoryMapper, ProductLinkMapper, UserMapper
-│   └── domain/      Photo, Category, ProductLink, User
+├── pom.xml                                   참고 프로젝트 골격에서 불필요 의존성 제거
+├── Dockerfile                                FROM tomcat:9-jdk17
+├── src/main/java/com/fashion/
+│   ├── cmmn/
+│   │   ├── controller/CmmnController         /login, /logout
+│   │   ├── controller/CmmnApiController      POST /api/login
+│   │   ├── interceptor/LoginInterceptor
+│   │   ├── storage/SupabaseStorage           upload(MultipartFile) → URL, delete(url)
+│   │   ├── service/CmmnService, impl/CmmnServiceImpl   관리자 조회, 초기 관리자 생성
+│   │   ├── dao/CmmnDAO
+│   │   └── util/Response, Constants, SessionUtil, Validation
+│   └── photo/
+│       ├── controller/PhotoController        /, /c/{slug}, /photos/{id}, /admin/photos/**
+│       ├── controller/PhotoApiController     /api/admin/**
+│       ├── service/PhotoService, impl/PhotoServiceImpl
+│       └── dao/PhotoDAO, LinkDAO
 ├── src/main/resources/
-│   ├── mapper/*.xml
-│   ├── application.properties   (환경변수 참조)
+│   ├── egovProps/globals.properties          환경변수 참조 (${env:...} 대신 시스템 프로퍼티/환경변수 치환)
+│   ├── spring/context-datasource.xml
+│   ├── sqlmap/mybatis-config.xml
+│   ├── sqlmap/mappers/fashion/cmmn/cmmn.xml
+│   ├── sqlmap/mappers/fashion/photo/photo.xml, link.xml
+│   ├── log4j2.xml
 │   └── schema.sql
 └── src/main/webapp/
+    ├── common/taglib.jsp
     ├── WEB-INF/web.xml
-    ├── WEB-INF/views/*.jsp       home, category, photo-detail, login, admin/photo-form, error/404, error/500
-    └── static/style.css
+    ├── WEB-INF/config/dispatcher-servlet.xml
+    ├── WEB-INF/tiles/tiles-layout.xml
+    ├── WEB-INF/layout/fashionLayout.jsp      헤더(카테고리 메뉴, 로그인/로그아웃) + body
+    ├── WEB-INF/jsp/login/loginMain.jsp
+    ├── WEB-INF/jsp/fashion/photo/list.jsp, detail.jsp
+    ├── WEB-INF/jsp/fashion/admin/photoForm.jsp
+    ├── WEB-INF/jsp/error.jsp
+    ├── META-INF/context.xml                  SameSite=Lax 쿠키
+    └── resources/
+        ├── css/reset.css, common.css (재사용), fashion.css (신규)
+        ├── fonts/ (Pretendard woff2만)
+        └── js/common/common.js (재사용 + App.upload 추가), app/photo/list.js, detail.js, photoForm.js, app/login/login.js
 ```
 
-계층 규칙
-- Controller: 파라미터 바인딩과 뷰 반환만. 로직 없음.
-- Service: 트랜잭션 경계. `create()`는 Storage 업로드 → `photo` INSERT → `photo_category` INSERT. 상세 조회 시 링크를 `LinkedHashMap<String, List<ProductLink>>`(item_label 기준, 등록 순서 유지)로 그룹핑.
-- ImageStorage: `String upload(MultipartFile)` → 공개 URL, `void delete(String url)`. 외부 저장소 의존은 이 클래스에만 둔다.
-- Mapper: SQL은 전부 XML.
+계층 규칙 (참고 프로젝트와 동일)
+- `Controller`: 뷰 이름 반환. `ApiController`: `@ResponseBody`, try/catch 후 `Response.of()`.
+- `Service` 인터페이스 + `impl`. 트랜잭션은 `@Transactional`(`context-datasource.xml`에 `tx:annotation-driven`).
+- `DAO`: `@Repository`, `SqlSessionTemplate` 주입, `SQL_PATH` 상수 + 메서드명.
+- 파라미터·결과는 `Map<String,Object>` (`mapUnderscoreToCamelCase=true`).
+- 상세 조회 시 링크를 `LinkedHashMap<String, List<Map>>`(item_label 기준, 등록 순서 유지)로 그룹핑해서 JSP에 넘긴다.
 
-환경변수
+환경변수 → `globals.properties`
 ```
-DB_URL, DB_USER, DB_PASSWORD
-SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_BUCKET
-ADMIN_USERNAME, ADMIN_PASSWORD_HASH
+Globals.Fashion.Postgre.Url / UserName / Password
+Globals.Fashion.Supabase.Url / ServiceKey / Bucket
+Globals.Fashion.Admin.LoginId / PasswordHash
 ```
-비밀값은 커밋하지 않는다.
+`globals.properties`에는 키만 두고 값은 `${환경변수}`로 치환한다(`PropertyPlaceholderConfigurer`의 시스템 환경변수 폴백). 비밀값은 커밋하지 않는다.
 
-의존성: spring-webmvc 6.x, spring-security-web/config/taglibs 6.x, mybatis, mybatis-spring, postgresql, HikariCP, jakarta.servlet.jsp.jstl, junit-jupiter(test). Lombok·이미지 SDK·Mockito 없음.
+의존성: `org.egovframe.rte.ptl.mvc`, `org.egovframe.rte.psl.dataaccess`, `javax.servlet-api`(provided), jstl, tiles 3, `postgresql`, `commons-dbcp`, `spring-security-core`(BCrypt), `jackson-databind`, log4j2, `commons-fileupload`(multipart), `junit-jupiter`(test).
 
 ## 5. DB 스키마
 
 ```sql
 CREATE TABLE users (
   id            BIGSERIAL PRIMARY KEY,
-  username      VARCHAR(50)  NOT NULL UNIQUE,
+  login_id      VARCHAR(50)  NOT NULL UNIQUE,
   password_hash VARCHAR(100) NOT NULL,
   role          VARCHAR(20)  NOT NULL DEFAULT 'ADMIN'
 );
@@ -132,64 +179,76 @@ CREATE INDEX ON product_link (photo_id, item_label, sort_order);
 ```
 
 - 사진 삭제는 CASCADE로 매핑·링크가 함께 삭제된다. Storage 파일 삭제는 DB 삭제 후 호출하며, 실패 시 로그만 남긴다(고아 파일 허용, 불일치 금지).
-- 초기 관리자: `schema.sql`에 비밀번호를 넣지 않는다. 앱 시작 시 `users`가 비어 있으면 `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH`로 1행 생성.
+- 초기 관리자: 앱 시작 시 `users`가 비어 있으면 `Globals.Fashion.Admin.LoginId` / `PasswordHash`로 1행 생성. 해시는 로컬에서 BCrypt로 한 번 만들어 환경변수에 넣는다.
 
-## 6. 입력 검증
+## 6. 입력 검증 (서버 측, `cmmn/util/Validation`)
 
 | 항목 | 규칙 | 실패 시 |
 |---|---|---|
-| 이미지 파일 | 필수. 매직 바이트로 jpeg/png/webp 판별. 최대 10MB. 저장명은 `UUID + 확장자` | 폼 재표시 |
-| 제목 | 필수, ≤100자 | 폼 재표시 |
-| 카테고리 | ≥1개 | 폼 재표시 |
-| 링크 URL | 필수. `java.net.URI` 파싱 후 scheme이 http/https | 상세로 리다이렉트 + 메시지 |
-| item_label | 필수, trim 후 ≤30자 | 상세로 리다이렉트 + 메시지 |
+| 이미지 파일 | 필수. 매직 바이트로 jpeg/png/webp 판별. 최대 10MB. 저장명은 `UUID + 확장자` | `FAIL` + 메시지 |
+| 제목 | 필수, trim 후 ≤100자 | `FAIL` + 메시지 |
+| 카테고리 | ≥1개, 존재하는 id만 | `FAIL` + 메시지 |
+| 링크 URL | 필수. `java.net.URI` 파싱 후 scheme이 http/https | `FAIL` + 메시지 |
+| item_label | 필수, trim 후 ≤30자 | `FAIL` + 메시지 |
 
-- JSP 출력은 전부 이스케이프(`<c:out>` / `fn:escapeXml`).
-- 모든 POST 폼에 CSRF 토큰(`<sec:csrfInput/>`).
+- JSP 출력은 전부 이스케이프(`<c:out>` / `fn:escapeXml`). JS로 그리는 부분은 `textContent`만 사용.
+- CSRF: `/api/admin/**`는 인터셉터에서 `X-Requested-With: XMLHttpRequest` 헤더를 요구한다(교차 출처에서는 이 헤더를 붙일 수 없어 단순 폼 전송이 차단됨). 세션 쿠키는 `SameSite=Lax` (`META-INF/context.xml`의 `CookieProcessor`).
 
 ## 7. 에러 처리
 
 | 상황 | 처리 |
 |---|---|
-| 없는 사진/카테고리 | 404 (`@ResponseStatus(NOT_FOUND)` 예외 → `error/404.jsp`) |
-| Storage 업로드 실패 | 트랜잭션 롤백, 폼 재표시 + "이미지 업로드 실패". 원인은 서버 로그 |
+| 없는 사진/카테고리 (화면) | 404 → `error.jsp` (web.xml `error-page`) |
+| 없는 사진/링크 (API) | `FAIL` + "대상을 찾을 수 없습니다" |
+| Storage 업로드 실패 | 트랜잭션 롤백, `FAIL` + "이미지 업로드 실패". 원인은 서버 로그 |
 | DB INSERT 실패 (업로드 후) | 업로드한 파일 삭제 시도. 실패해도 고아 파일만 남고 데이터 불일치 없음 |
-| DB 접속 실패 등 | 500 페이지. 세부 정보 비노출, 로그에 스택트레이스 |
-| 비로그인 `/admin/**` | 로그인 페이지로 리다이렉트 |
+| 예상 밖 예외 (API) | `ApiController` try/catch → `FAIL` + 일반 메시지, 스택트레이스는 로그 |
+| 예상 밖 예외 (화면) | 500 → `error.jsp` |
+| 비로그인 보호 경로 접근 | Ajax: `{"sessionExpired":true}` → `App.sessionExpired()`가 `/login`으로 이동. 화면: `/login` 리다이렉트 |
 
-## 8. 테스트
+## 8. 로그인
+
+- `POST /api/login` → `CmmnDAO.selectUser(loginId)` → `BCryptPasswordEncoder.matches()` → 성공 시 `SessionUtil.setSessionValue(session, "loginId", ...)`.
+- 세션 타임아웃 60분, 쿠키 전용 추적 (참고 프로젝트 `web.xml`과 동일).
+- 로그인 실패 잠금은 넣지 않는다. 관리자 1명이라 잠기면 DB를 직접 고쳐야 풀린다. BCrypt 자체가 느린 해시라 무차별 대입 비용이 크다. 공격 흔적이 보이면 그때 실패 카운터를 추가한다.
+
+## 9. 테스트
 
 | 대상 | 방식 |
 |---|---|
 | 링크 그룹핑 | JUnit 5. 링크 5개 → item_label별 3그룹, 등록 순서 유지 |
-| URL·파일 형식 검증 | JUnit 5. `javascript:`, 빈 값, 잘못된 매직 바이트 거부 |
-| MyBatis 매퍼 | 로컬 Postgres에 `schema.sql` 적용 후 INSERT → SELECT → CASCADE 삭제 1회 확인 |
-| 화면 흐름 | 로컬 Tomcat에서 등록 → 상세 → 링크 추가 → 수정 → 삭제 수동 1회 |
+| `Validation` | JUnit 5. `javascript:`, 빈 값, 잘못된 매직 바이트 거부 |
+| MyBatis 매퍼 | Postgres에 `schema.sql` 적용 후 INSERT → SELECT → CASCADE 삭제 1회 확인 |
+| 화면 흐름 | 로컬 Tomcat 9에서 로그인 → 등록 → 상세 → 링크 추가 → 수정 → 삭제 수동 1회 |
 
-MockMvc·Storage 모킹 테스트는 넣지 않는다.
+참고 프로젝트는 `skipTests=true`이지만 이 프로젝트는 위 두 단위 테스트를 `mvn test`로 돌린다.
 
-## 9. 실행과 배포
+## 10. 실행과 배포
 
 로컬
 1. Postgres(로컬 또는 Supabase)에 `schema.sql` 실행
-2. 환경변수 설정
-3. `mvn package` → WAR를 Tomcat 10.1 `webapps/`에 배치 또는 IDE Tomcat 실행
+2. 환경변수 설정 (DB, Supabase, 관리자 해시)
+3. `mvn package` → WAR를 Tomcat 9 `webapps/`에 배치 또는 IDE Tomcat 실행
 
 배포
 1. Supabase: 프로젝트 생성, 공개 버킷 1개, `schema.sql` 실행
 2. Dockerfile
    ```
-   FROM tomcat:10.1-jdk17
+   FROM tomcat:9-jdk17
    RUN rm -rf /usr/local/tomcat/webapps/*
    COPY target/fashion-archive.war /usr/local/tomcat/webapps/ROOT.war
    ```
 3. 컨테이너 호스팅에 Git 연결, 환경변수 입력, 배포. 호스팅과 Supabase 무료 티어 조건은 배포 시점에 확인한다.
 
-## 10. 구현 순서
+## 11. 구현 순서와 담당
 
-1. 프로젝트 골격 + 설정 + `schema.sql` → 빈 홈 화면 확인
-2. 카테고리 메뉴 + 사진 목록/상세 조회 (읽기 전용)
-3. Spring Security 로그인 + 초기 관리자 생성
-4. 사진 등록/수정/삭제 + Supabase Storage 업로드
-5. 링크 추가/수정/삭제
-6. 에러 페이지, 스타일, Dockerfile, 배포
+| 단계 | 내용 | 담당 |
+|---|---|---|
+| 1 | pom, web.xml, dispatcher/datasource XML, Tiles 레이아웃, `common.js`/CSS 이식, `schema.sql`, 빈 홈 화면 | Claude |
+| 2 | `Response`/`Constants`/`SessionUtil`/인터셉터/`Validation`, 로그인 화면+API, 초기 관리자 생성 | Claude |
+| 3 | 카테고리 메뉴 + 사진 목록/상세 조회 (읽기 전용) | 단계 시작 시 결정 |
+| 4 | `SupabaseStorage` + 사진 등록/수정/삭제 | 단계 시작 시 결정 |
+| 5 | 링크 추가/수정/삭제 (상세 페이지 관리자 UI) | 단계 시작 시 결정 |
+| 6 | 에러 페이지, 스타일 마무리, Dockerfile, 배포 | 단계 시작 시 결정 |
+
+각 단계 시작 시 무엇을 왜 만드는지 설명하고 담당을 정한다. 사용자가 작성한 코드는 Claude가 리뷰하고, Claude가 작성한 코드는 사용자가 실행해 확인한다.
