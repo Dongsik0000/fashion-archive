@@ -1,0 +1,6 @@
+.git
+.idea
+docs
+src/test
+target/*
+!target/fashion-archive.war

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fashion.photo.dao.LinkDAO">
+
+    <!-- 사진의 제품 링크 목록. 등록 순서 -->
+    <select id="selectLinkList" parameterType="java.lang.Long" resultType="java.util.HashMap">
+        SELECT id, photo_id, item_label, url, title, sort_order
+        FROM product_link
+        WHERE photo_id = #{photoId}
+        ORDER BY sort_order, id
+    </select>
+
+    <!-- 같은 사진 안에서 등록 순서를 유지하기 위해 sort_order = 현재 최대값 + 1 -->
+    <insert id="insertLink" parameterType="java.util.HashMap">
+        INSERT INTO product_link (photo_id, item_label, url, title, sort_order)
+        SELECT #{photoId}, #{itemLabel}, #{url}, #{title}, COALESCE(MAX(sort_order), 0) + 1
+          FROM product_link
+         WHERE photo_id = #{photoId}
+    </insert>
+
+    <update id="updateLink" parameterType="java.util.HashMap">
+        UPDATE product_link
+           SET item_label = #{itemLabel},
+               url        = #{url},
+               title      = #{title}
+         WHERE id = #{id}
+    </update>
+
+    <delete id="deleteLink" parameterType="java.lang.Long">
+        DELETE FROM product_link WHERE id = #{id}
+    </delete>
+
+</mapper>
