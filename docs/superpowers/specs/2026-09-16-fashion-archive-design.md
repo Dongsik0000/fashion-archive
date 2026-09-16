@@ -18,7 +18,7 @@
 | 빌드 | Maven, WAR 패키징. 외부 Tomcat 9 |
 | DB | Supabase PostgreSQL. commons-dbcp + `SqlSessionTemplate` |
 | 이미지 저장 | 서버 경유 업로드 → Supabase Storage (REST, Java 표준 `HttpClient`). DB에는 공개 URL만 저장 |
-| 로그인 | 세션 `loginId` + `HandlerInterceptor` (참고 프로젝트 방식). 비밀번호 해시는 **BCrypt** (참고 프로젝트의 SHA-256 대신) |
+| 로그인 | 세션 `loginId` + `HandlerInterceptor` (참고 프로젝트 방식). 판정 로직은 `CmmnApiController`에, Service는 DAO 위임만. 비밀번호 해시는 **BCrypt** (참고 프로젝트의 SHA-256 대신) |
 | 프런트 | jQuery + `App.post()`(fetch JSON) 모듈 패턴, Pretendard, `reset.css`/`common.css` 골격 재사용 |
 | 배포 | `tomcat:9-jdk17` Docker 이미지 + WAR. 호스팅(Railway/Render/Fly.io)은 배포 시점에 가격 확인 후 선택 |
 | 협업 | 설정·골격은 Claude, 화면·기능은 단계별로 담당을 나눈다 |
@@ -81,7 +81,7 @@ fashion-archive/
 │   │   ├── controller/CmmnApiController      POST /api/login
 │   │   ├── interceptor/LoginInterceptor
 │   │   ├── storage/SupabaseStorage           upload(MultipartFile) → URL, delete(url)
-│   │   ├── service/CmmnService, impl/CmmnServiceImpl   관리자 조회, 초기 관리자 생성
+│   │   ├── service/CmmnService, impl/CmmnServiceImpl   사용자 조회 (DAO 위임)
 │   │   ├── dao/CmmnDAO
 │   │   └── util/Response, Constants, SessionUtil, Validation
 │   └── photo/
@@ -118,14 +118,13 @@ fashion-archive/
 - `Controller`: 뷰 이름 반환. `ApiController`: `@ResponseBody`, try/catch 후 `Response.of()`.
 - `Service` 인터페이스 + `impl`. 트랜잭션은 `@Transactional`(`context-datasource.xml`에 `tx:annotation-driven`).
 - `DAO`: `@Repository`, `SqlSessionTemplate` 주입, `SQL_PATH` 상수 + 메서드명.
-- 파라미터·결과는 `Map<String,Object>` (`mapUnderscoreToCamelCase=true`).
+- 파라미터·결과는 `Map<String,Object>`. 조회 결과 키는 컬럼명 그대로(snake_case: `login_id`, `image_url`, `item_label`). MyBatis `mapUnderscoreToCamelCase`는 HashMap 결과에 적용되지 않으므로 쓰지 않는다.
 - 상세 조회 시 링크를 `LinkedHashMap<String, List<Map>>`(item_label 기준, 등록 순서 유지)로 그룹핑해서 JSP에 넘긴다.
 
 환경변수 → `globals.properties`
 ```
 Globals.Fashion.Postgre.Url / UserName / Password
 Globals.Fashion.Supabase.Url / ServiceKey / Bucket
-Globals.Fashion.Admin.LoginId / PasswordHash
 ```
 `globals.properties`에는 키만 두고 값은 `${환경변수}`로 치환한다(`PropertyPlaceholderConfigurer`의 시스템 환경변수 폴백). 비밀값은 커밋하지 않는다.
 
@@ -179,7 +178,10 @@ CREATE INDEX ON product_link (photo_id, item_label, sort_order);
 ```
 
 - 사진 삭제는 CASCADE로 매핑·링크가 함께 삭제된다. Storage 파일 삭제는 DB 삭제 후 호출하며, 실패 시 로그만 남긴다(고아 파일 허용, 불일치 금지).
-- 초기 관리자: 앱 시작 시 `users`가 비어 있으면 `Globals.Fashion.Admin.LoginId` / `PasswordHash`로 1행 생성. 해시는 로컬에서 BCrypt로 한 번 만들어 환경변수에 넣는다.
+- 관리자 계정: `PasswordHashTool`(test 소스)로 BCrypt 해시를 만든 뒤 psql **대화형**에서 1회 INSERT한다. PowerShell `-c "..."` 안에서는 `$2a$10$...`의 `$`가 변수로 치환되어 해시가 잘리므로 쓰지 않는다.
+  ```sql
+  INSERT INTO users (login_id, password_hash) VALUES ('admin', '$2a$10$...');
+  ```
 
 ## 6. 입력 검증 (서버 측, `cmmn/util/Validation`)
 
@@ -208,7 +210,7 @@ CREATE INDEX ON product_link (photo_id, item_label, sort_order);
 
 ## 8. 로그인
 
-- `POST /api/login` → `CmmnDAO.selectUser(loginId)` → `BCryptPasswordEncoder.matches()` → 성공 시 `SessionUtil.setSessionValue(session, "loginId", ...)`.
+- `POST /api/login` → `cmmnService.selectUserByLoginId(loginId)` → `passwordEncoder.matches()` → 성공 시 세션에 `loginId`, `userId` 저장. 판정은 컨트롤러가 하고 Service/DAO는 조회만 한다 (참고 프로젝트 `CmmnApiController.login()`과 같은 구조).
 - 세션 타임아웃 60분, 쿠키 전용 추적 (참고 프로젝트 `web.xml`과 동일).
 - 로그인 실패 잠금은 넣지 않는다. 관리자 1명이라 잠기면 DB를 직접 고쳐야 풀린다. BCrypt 자체가 느린 해시라 무차별 대입 비용이 크다. 공격 흔적이 보이면 그때 실패 카운터를 추가한다.
 

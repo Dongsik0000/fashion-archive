@@ -21,7 +21,7 @@
 - JSP 출력은 `<c:out>` / `fn:escapeXml`, JS는 `textContent`만. 외부 링크는 `target="_blank" rel="noopener noreferrer"`.
 - 이미지: jpg/png/webp, 매직 바이트로 판별, 10MB 이하, 저장명 `UUID.확장자`.
 - 커밋 메시지는 `feat:`/`chore:`/`test:`/`docs:` 접두어, 끝에 `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
-- 환경변수 이름: `FASHION_DB_URL`, `FASHION_DB_USER`, `FASHION_DB_PASSWORD`, `FASHION_SUPABASE_URL`, `FASHION_SUPABASE_SERVICE_KEY`, `FASHION_SUPABASE_BUCKET`, `FASHION_ADMIN_ID`, `FASHION_ADMIN_PASSWORD_HASH`.
+- 환경변수 이름: `FASHION_DB_URL`, `FASHION_DB_USER`, `FASHION_DB_PASSWORD`, `FASHION_SUPABASE_URL`, `FASHION_SUPABASE_SERVICE_KEY`, `FASHION_SUPABASE_BUCKET`.
 
 ---
 
@@ -412,9 +412,6 @@ Globals.Fashion.Postgre.Password=${FASHION_DB_PASSWORD}
 Globals.Fashion.Supabase.Url=${FASHION_SUPABASE_URL}
 Globals.Fashion.Supabase.ServiceKey=${FASHION_SUPABASE_SERVICE_KEY}
 Globals.Fashion.Supabase.Bucket=${FASHION_SUPABASE_BUCKET:photos}
-
-Globals.Fashion.Admin.LoginId=${FASHION_ADMIN_ID:admin}
-Globals.Fashion.Admin.PasswordHash=${FASHION_ADMIN_PASSWORD_HASH}
 ```
 
 - [ ] **Step 7: mybatis-config.xml 작성**
@@ -1254,7 +1251,7 @@ git commit -m "feat: login interceptor and samesite cookie"
 
 ---
 
-### Task 7: 사용자 DAO/Service, 초기 관리자 생성, 해시 생성 도구
+### Task 7: 사용자 DAO/Service, 해시 생성 도구, 관리자 계정 INSERT
 
 **Files:**
 - Modify: `src/main/resources/sqlmap/mappers/fashion/cmmn/cmmn.xml`
@@ -1264,8 +1261,7 @@ git commit -m "feat: login interceptor and samesite cookie"
 - Create: `src/test/java/com/fashion/PasswordHashTool.java`
 
 **Interfaces:**
-- Consumes: 빈 `passwordEncoder`, 프로퍼티 `Globals.Fashion.Admin.LoginId/PasswordHash`
-- Produces: `CmmnService.login(String loginId, String rawPassword) → Map<String,Object>|null`(키 `id`, `login_id`, `role`). `CmmnDAO.selectUserByLoginId(String)`, `countUsers()`, `insertUser(Map)`.
+- Produces: `CmmnService.selectUserByLoginId(String loginId) → Map<String,Object>|null`(키 `id`, `login_id`, `password_hash`, `role`). `CmmnDAO.selectUserByLoginId(String)`. 판정(BCrypt 비교, 세션 저장)은 Task 8의 컨트롤러가 한다.
 
 - [ ] **Step 1: cmmn.xml에 사용자 SQL 추가**
 
@@ -1276,14 +1272,6 @@ git commit -m "feat: login interceptor and samesite cookie"
          WHERE login_id = #{loginId}
     </select>
 
-    <select id="countUsers" resultType="int">
-        SELECT COUNT(*) FROM users
-    </select>
-
-    <insert id="insertUser" parameterType="java.util.HashMap">
-        INSERT INTO users (login_id, password_hash, role)
-        VALUES (#{loginId}, #{passwordHash}, 'ADMIN')
-    </insert>
 ```
 
 - [ ] **Step 2: CmmnDAO에 메서드 추가**
@@ -1293,13 +1281,6 @@ git commit -m "feat: login interceptor and samesite cookie"
         return sqlSession.selectOne(NS + "selectUserByLoginId", loginId);
     }
 
-    public int countUsers() {
-        return sqlSession.selectOne(NS + "countUsers");
-    }
-
-    public void insertUser(Map<String, Object> param) {
-        sqlSession.insert(NS + "insertUser", param);
-    }
 ```
 
 - [ ] **Step 3: CmmnService.java**
@@ -1311,66 +1292,32 @@ import java.util.Map;
 
 public interface CmmnService {
 
-    // 성공 시 사용자 정보(id, login_id, role. 조회 결과 Map의 키는 컬럼명 그대로), 실패 시 null
-    Map<String, Object> login(String loginId, String rawPassword);
+    // 조회 결과 키는 컬럼명 그대로: id, login_id, password_hash, role. 없으면 null
+    Map<String, Object> selectUserByLoginId(String loginId);
 }
 ```
 
-- [ ] **Step 4: CmmnServiceImpl.java** — 기동 시 `users`가 비어 있으면 환경변수의 관리자 1명을 넣는다.
+- [ ] **Step 4: CmmnServiceImpl.java** — 참고 프로젝트처럼 DAO 위임만 한다.
 
 ```java
 package com.fashion.cmmn.service.impl;
 
 import com.fashion.cmmn.dao.CmmnDAO;
 import com.fashion.cmmn.service.CmmnService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import java.util.HashMap;
 import java.util.Map;
 
 @Service("cmmnService")
 public class CmmnServiceImpl implements CmmnService {
 
-    private static final Logger logger = LoggerFactory.getLogger(CmmnServiceImpl.class);
-
     @Autowired
     private CmmnDAO cmmnDAO;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Value("${Globals.Fashion.Admin.LoginId}")
-    private String adminLoginId;
-
-    @Value("${Globals.Fashion.Admin.PasswordHash}")
-    private String adminPasswordHash;
-
-    @PostConstruct
-    public void ensureAdmin() {
-        if (cmmnDAO.countUsers() > 0) {
-            return;
-        }
-        Map<String, Object> param = new HashMap<>();
-        param.put("loginId", adminLoginId);
-        param.put("passwordHash", adminPasswordHash);
-        cmmnDAO.insertUser(param);
-        logger.info("초기 관리자 계정 생성: {}", adminLoginId);
-    }
-
     @Override
-    public Map<String, Object> login(String loginId, String rawPassword) {
-        Map<String, Object> user = cmmnDAO.selectUserByLoginId(loginId);
-        if (user == null || !passwordEncoder.matches(rawPassword, (String) user.get("password_hash"))) {
-            return null;
-        }
-        user.remove("password_hash");
-        return user;
+    public Map<String, Object> selectUserByLoginId(String loginId) {
+        return cmmnDAO.selectUserByLoginId(loginId);
     }
 }
 ```
@@ -1395,23 +1342,29 @@ public class PasswordHashTool {
 }
 ```
 
-- [ ] **Step 6: 해시 생성 후 환경변수에 설정**
+- [ ] **Step 6: 관리자 계정 INSERT (psql 대화형)** — PowerShell `-c "..."` 안에서는 `$2a$10$...`의 `$`가 변수로 치환되어 해시가 잘리므로 반드시 psql 프롬프트에서 입력한다.
 
-IntelliJ에서 `PasswordHashTool` 실행 → 비밀번호 입력 → `$2a$10$...` 출력. Tomcat 실행 설정의 환경변수 `FASHION_ADMIN_PASSWORD_HASH`에 붙여 넣는다. (`$` 문자가 있으므로 IntelliJ 환경변수 창에서는 그대로 붙여 넣어도 되지만, 셸에서 넣을 때는 작은따옴표로 감싼다.)
+IntelliJ에서 `PasswordHashTool` 실행 → 비밀번호 입력 → `$2a$10$...` 복사. 이어서:
+
+```bash
+psql -U postgres -d fashion
+```
+`fashion=#` 프롬프트에서:
+```sql
+INSERT INTO users (login_id, password_hash) VALUES ('admin', '여기에_해시');
+SELECT id, login_id, length(password_hash) FROM users;
+```
+Expected: 1행, `length` = 60. `\q`로 종료.
 
 - [ ] **Step 7: 기동 확인**
 
-Tomcat 재시작. 콘솔에 `초기 관리자 계정 생성: admin`.
-```bash
-psql -U postgres -d fashion -c "SELECT id, login_id, role FROM users;"
-```
-Expected: 1행
+Tomcat 재시작. 매퍼 XML 파싱 오류 없이 홈이 뜨면 정상.
 
 - [ ] **Step 8: 커밋**
 
 ```bash
 git add -A
-git commit -m "feat: user lookup, initial admin bootstrap, password hash tool"
+git commit -m "feat: user lookup and password hash tool"
 ```
 
 ---
@@ -1426,7 +1379,7 @@ git commit -m "feat: user lookup, initial admin bootstrap, password hash tool"
 - Modify: `src/main/webapp/resources/css/fashion.css` (로그인 스타일 추가)
 
 **Interfaces:**
-- Consumes: `CmmnService.login`, `Response`, `Constants`
+- Consumes: `CmmnService.selectUserByLoginId`, 빈 `passwordEncoder`, `Response`, `Constants`, `Validation`
 - Produces: `GET /login`, `GET /logout`, `POST /api/login` (JSON `{loginId, password}` → `{code:"00"}` 또는 `{code:"01", message}`). 세션 속성 `loginId`(String), `userId`(Long).
 
 - [ ] **Step 1: CmmnController.java**
