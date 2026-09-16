@@ -46,10 +46,10 @@ public class CmmnServiceImpl implements CmmnService {
     @Override
     public Map<String, Object> login(String loginId, String rawPassword) {
         Map<String, Object> user = cmmnDAO.selectUserByLoginId(loginId);
-        if (user == null || !passwordEncoder.matches(rawPassword, (String) user.get("passwordHash"))) {
+        if (user == null || !passwordEncoder.matches(rawPassword, (String) user.get("password_hash"))) {
             return null;
         }
-        user.remove("passwordHash");
+        user.remove("password_hash");
         return user;
     }
 }
