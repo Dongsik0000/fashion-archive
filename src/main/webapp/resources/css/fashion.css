@@ -63,7 +63,10 @@ img { display: block; max-width: 100%; }
 .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 40px 28px; list-style: none; }
 .photo-grid a { display: block; }
 .photo-grid img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; background: #E7E5DF; }
-.photo-grid figcaption { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 14px; }
+.photo-grid figcaption { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; font-size: 14px; }
+.season-dots { display: inline-flex; gap: 4px; flex: none; }
+.season-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--season); }
+.photo-grid .photo-title { flex: 1; }
 .photo-grid .photo-title { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .photo-grid .photo-date { flex: none; color: var(--mute); font-variant-numeric: tabular-nums; }
 .photo-grid a:hover .photo-title { text-decoration: underline; text-underline-offset: 3px; }
@@ -76,7 +79,16 @@ img { display: block; max-width: 100%; }
 .photo-detail-image { position: sticky; top: 24px; }
 .photo-detail-image img { width: 100%; background: #E7E5DF; }
 
-.photo-categories { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; font-size: 14px; color: var(--ink-soft); }
+.detail-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.photo-categories { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; color: var(--ink-soft); }
+.text-btn { padding: 0; border: 0; background: none; font: inherit; font-size: 14px; color: var(--mute); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.text-btn:hover { color: var(--ink); }
+.text-btn.is-danger:hover { color: var(--danger); }
+.edit-toggle { flex: none; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--ink-soft); background: var(--surface); }
+.edit-toggle:hover { border-color: var(--ink); }
+.edit-toggle[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+/* 관리자도 기본은 읽기 화면. 편집 모드에서만 보이는 것들 */
+[data-editing="false"] .edit-only { display: none; }
 .photo-categories a { display: inline-flex; align-items: center; gap: 7px; }
 .photo-categories a::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--season); }
 .photo-categories a:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -85,10 +97,7 @@ img { display: block; max-width: 100%; }
 .detail-date { font-size: 14px; color: var(--mute); margin-bottom: 22px; }
 .photo-memo { white-space: pre-wrap; color: var(--ink-soft); line-height: 1.7; max-width: 60ch; margin-bottom: 40px; }
 
-.admin-actions { display: flex; gap: 14px; margin-bottom: 28px; font-size: 14px; }
-.admin-actions .text-btn { padding: 0; border: 0; background: none; font: inherit; color: var(--mute); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.admin-actions .text-btn:hover { color: var(--ink); }
-.admin-actions .text-btn.is-danger:hover { color: var(--danger); }
+.admin-actions { display: flex; gap: 14px; margin-bottom: 28px; }
 
 .link-groups { border-top: 1px solid var(--line); }
 .link-label { display: flex; align-items: baseline; gap: 12px; padding: 22px 0 10px; font-family: var(--serif); font-weight: 700; font-size: 20px; }
@@ -132,6 +141,9 @@ img { display: block; max-width: 100%; }
 .photo-form { max-width: 560px; display: flex; flex-direction: column; gap: 20px; }
 .form-title { font-family: var(--serif); font-weight: 700; font-size: 28px; margin-bottom: 8px; }
 .photo-form-preview { width: 200px; aspect-ratio: 3 / 4; object-fit: cover; background: #E7E5DF; }
+.file-field input[type=file] { padding: 14px; border: 1px dashed var(--line); border-radius: 4px; background: var(--surface); cursor: pointer; }
+.file-field input[type=file]:hover { border-color: var(--ink); }
+.file-field .photo-form-preview { margin-top: 10px; }
 .category-check { border: 0; padding: 0; }
 .category-check legend { font-size: 13px; color: var(--mute); margin-bottom: 8px; }
 .category-check .chips { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -154,6 +166,11 @@ img { display: block; max-width: 100%; }
 .login-box .btn { justify-content: center; margin-top: 6px; }
 .login-box p { font-size: 14px; color: var(--mute); }
 
+/* ---------- 토스트 ---------- */
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 12px); max-width: min(90vw, 480px); padding: 12px 18px; border-radius: 8px; background: var(--ink); color: var(--paper); font-size: 14px; line-height: 1.5; box-shadow: 0 6px 24px rgba(28, 35, 49, .18); opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease; z-index: 10; }
+.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.toast.is-error { background: var(--danger); }
+
 /* ---------- 반응형 ---------- */
 @media (max-width: 860px) {
   .photo-detail { grid-template-columns: 1fr; gap: 28px; }
@@ -165,8 +182,13 @@ img { display: block; max-width: 100%; }
 @media (max-width: 480px) {
   :root { --gutter: 16px; }
   .photo-grid { grid-template-columns: repeat(2, 1fr); }
-  .site-header .inner { gap: 14px 20px; }
+  .site-header .inner { gap: 10px 16px; padding-bottom: 12px; }
+  .site-nav { order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto; gap: 18px; padding-bottom: 4px; scrollbar-width: none; }
+  .site-nav::-webkit-scrollbar { display: none; }
+  .site-nav a { flex: none; }
+  .site-account { margin-left: auto; }
+  .detail-top { align-items: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .site-nav a::after { transition: none; }
+  .site-nav a::after, .toast { transition: none; }
 }

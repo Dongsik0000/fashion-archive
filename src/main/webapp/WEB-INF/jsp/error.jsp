@@ -5,8 +5,8 @@
 <head>
     <meta charset="UTF-8">
     <title>오류 - Fashion Archive</title>
-    <link rel="stylesheet" href="<c:url value='/resources/css/reset.css'/>">
-    <link rel="stylesheet" href="<c:url value='/resources/css/fashion.css'/>">
+    <link rel="stylesheet" href="<c:url value='/resources/css/reset.css'/>?v=${applicationScope.assetVersion}">
+    <link rel="stylesheet" href="<c:url value='/resources/css/fashion.css'/>?v=${applicationScope.assetVersion}">
 </head>
 <body>
 <main class="site-main">

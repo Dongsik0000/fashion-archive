@@ -18,4 +18,4 @@
     </c:if>
 </p>
 
-<script defer src="<c:url value='/resources/js/app/photo/list.js'/>"></script>
+<script defer src="<c:url value='/resources/js/app/photo/list.js'/>?v=${applicationScope.assetVersion}"></script>

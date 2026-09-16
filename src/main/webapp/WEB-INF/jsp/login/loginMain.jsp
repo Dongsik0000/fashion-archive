@@ -6,11 +6,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>로그인 - Fashion Archive</title>
-    <link rel="stylesheet" href="<c:url value='/resources/css/reset.css'/>">
-    <link rel="stylesheet" href="<c:url value='/resources/css/fashion.css'/>">
+    <link rel="stylesheet" href="<c:url value='/resources/css/reset.css'/>?v=${applicationScope.assetVersion}">
+    <link rel="stylesheet" href="<c:url value='/resources/css/fashion.css'/>?v=${applicationScope.assetVersion}">
     <script>var contextPath = '${pageContext.request.contextPath}';</script>
-    <script src="<c:url value='/resources/js/common/common.js'/>"></script>
-    <script defer src="<c:url value='/resources/js/app/login/login.js'/>"></script>
+    <script src="<c:url value='/resources/js/common/common.js'/>?v=${applicationScope.assetVersion}"></script>
+    <script defer src="<c:url value='/resources/js/app/login/login.js'/>?v=${applicationScope.assetVersion}"></script>
 </head>
 <body class="login-page">
 <main class="login-box">

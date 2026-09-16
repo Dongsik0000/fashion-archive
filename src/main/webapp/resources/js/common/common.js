@@ -1,13 +1,32 @@
 // 전역 네임스페이스. 화면별 js는 App.xxx = (function(){ ... return {init:...}; })(); 로 등록한다.
 var App = window.App || {};
 
+// App.toast(message, type): 화면 하단에 잠깐 떠 있다 사라지는 알림. type: 'info' | 'error'
+App.toast = function (message, type) {
+    var el = document.getElementById('appToast');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'appToast';
+        el.className = 'toast';
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-live', 'polite');
+        document.body.appendChild(el);
+    }
+    clearTimeout(el._timer);
+    el.textContent = message;
+    el.className = 'toast is-visible' + (type === 'error' ? ' is-error' : '');
+    el._timer = setTimeout(function () { el.className = 'toast'; }, 3200);
+};
+
 App.error = function (title, message) {
-    window.alert(title + '\n' + message);
+    App.toast(message || title, 'error');
 };
 
 App.sessionExpired = function () {
-    App.error('로그인이 필요합니다.', '다시 로그인해주세요.');
-    window.location.href = contextPath + '/login';
+    App.toast('로그인이 필요합니다. 로그인 화면으로 이동합니다.', 'error');
+    setTimeout(function () {
+        window.location.href = contextPath + '/login?next=' + encodeURIComponent(location.pathname + location.search);
+    }, 900);
     return new Promise(function () {});   // 체인 중단
 };
 

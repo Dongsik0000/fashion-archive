@@ -1,12 +1,14 @@
 App.photoForm = (function () {
     var m$ = {
             form:    document.getElementById('photoForm'),
-            preview: document.getElementById('photoPreview')      // 수정 모드에만 존재
+            preview: document.getElementById('photoPreview'),
+            file:    document.querySelector('#photoForm input[name=file]')   // 등록 모드에만 존재
         },
 
         settings = {
             mode: document.getElementById('photoForm').dataset.mode,   // 'new' | 'edit'
             id: document.getElementById('photoForm').dataset.id,
+            maxBytes: 10 * 1024 * 1024,   // web.xml의 max-file-size와 같은 값
             submitting: false
         },
 
@@ -28,6 +30,26 @@ App.photoForm = (function () {
                 e.preventDefault();
                 submitPhoto();
             });
+            if (m$.file) {
+                m$.file.addEventListener('change', previewFile);
+            }
+        },
+
+        // 고른 파일을 바로 보여주고, 서버에서 거절될 크기는 여기서 미리 알려준다
+        previewFile = function () {
+            var file = m$.file.files[0];
+            if (!file) {
+                m$.preview.hidden = true;
+                return;
+            }
+            if (file.size > settings.maxBytes) {
+                App.error('알림', '10MB 이하의 사진만 올릴 수 있어요. (' + (file.size / 1024 / 1024).toFixed(1) + 'MB)');
+                m$.file.value = '';
+                m$.preview.hidden = true;
+                return;
+            }
+            m$.preview.src = URL.createObjectURL(file);
+            m$.preview.hidden = false;
         },
 
         // 수정 모드: 기존 값을 폼에 채운다
@@ -66,6 +88,10 @@ App.photoForm = (function () {
             }
             if (settings.mode === 'new' && !(fd.get('file') && fd.get('file').size > 0)) {
                 App.error('알림', '사진 파일을 선택해주세요.');
+                return;
+            }
+            if (settings.mode === 'new' && fd.get('file').size > settings.maxBytes) {
+                App.error('알림', '10MB 이하의 사진만 올릴 수 있어요.');
                 return;
             }
 

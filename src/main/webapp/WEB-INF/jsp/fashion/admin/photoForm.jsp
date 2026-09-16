@@ -10,9 +10,10 @@
 <form id="photoForm" class="photo-form" data-mode="${mode}" data-id="${photoId}">
     <c:choose>
         <c:when test="${mode eq 'new'}">
-            <label class="field">
+            <label class="field file-field">
                 <span>사진 (jpg, png, webp / 10MB 이하)</span>
                 <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required>
+                <img class="photo-form-preview" id="photoPreview" src="" alt="" hidden>
             </label>
         </c:when>
         <c:otherwise>
@@ -51,4 +52,4 @@
     </div>
 </form>
 
-<script defer src="<c:url value='/resources/js/app/photo/photoForm.js'/>"></script>
+<script defer src="<c:url value='/resources/js/app/photo/photoForm.js'/>?v=${applicationScope.assetVersion}"></script>

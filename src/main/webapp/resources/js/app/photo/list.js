@@ -53,6 +53,7 @@ App.photoList = (function () {
                 date.className = 'photo-date';
                 date.textContent = formatMonth(p.created_at);
 
+                caption.appendChild(seasonDots(p.category_slugs));
                 caption.appendChild(title);
                 caption.appendChild(date);
                 figure.appendChild(img);
@@ -61,6 +62,20 @@ App.photoList = (function () {
                 li.appendChild(a);
                 m$.grid.appendChild(li);
             });
+        },
+
+        // "summer,shoes" → 계절색 점. 홈처럼 여러 계절이 섞인 목록에서 카드만 보고 구분하기 위해
+        seasonDots = function (slugs) {
+            var wrap = document.createElement('span');
+            wrap.className = 'season-dots';
+            (slugs ? slugs.split(',') : []).forEach(function (slug) {
+                var dot = document.createElement('i');
+                dot.dataset.season = slug;
+                var cat = categories.filter(function (c) { return c.slug === slug; })[0];
+                dot.title = cat ? cat.name : slug;
+                wrap.appendChild(dot);
+            });
+            return wrap;
         },
 
         // created_at: Jackson이 Timestamp를 epoch millis(숫자)로 내려준다
