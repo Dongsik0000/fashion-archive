@@ -1,6 +1,6 @@
 package com.fashion.photo.controller;
 
-import com.fashion.cmmn.storage.SupabaseStorage;
+import com.fashion.cmmn.storage.LocalStorage;
 import com.fashion.cmmn.util.Constants;
 import com.fashion.cmmn.util.Response;
 import com.fashion.cmmn.util.Validation;
@@ -37,7 +37,7 @@ public class PhotoApiController {
     private PhotoService photoService;
 
     @Autowired
-    private SupabaseStorage storage;
+    private LocalStorage storage;
 
     @Autowired
     private TransactionTemplate transactionTemplate;
