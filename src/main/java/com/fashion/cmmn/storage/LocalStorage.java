@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.UUID;
 
 // 로컬 디스크 저장. 업로드: {uploadDir}/{file} 쓰기, 공개 URL: {baseUrl}/{file} (nginx가 정적 파일로 서빙)
@@ -32,7 +33,10 @@ public class LocalStorage {
         String name = UUID.randomUUID() + "." + ext;
         Path dir = Paths.get(uploadDir);
         Files.createDirectories(dir);
-        Files.write(dir.resolve(name), bytes, StandardOpenOption.CREATE_NEW);
+        Path file = dir.resolve(name);
+        Files.write(file, bytes, StandardOpenOption.CREATE_NEW);
+        // Tomcat 기본 umask(0027)로 생기는 0640 파일은 nginx(www-data)가 읽지 못한다
+        Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("rw-r--r--"));
         return baseUrl + "/" + name;
     }
 
