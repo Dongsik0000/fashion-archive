@@ -14,6 +14,10 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap">
     <link rel="stylesheet" href="<c:url value='/resources/css/reset.css'/>?v=${applicationScope.assetVersion}">
     <link rel="stylesheet" href="<c:url value='/resources/css/fashion.css'/>?v=${applicationScope.assetVersion}">
+    <%-- 홈 화면에 추가(웹 앱) 설정. 로그인 전에도 읽을 수 있게 /resources 아래에 둔다 --%>
+    <link rel="manifest" href="<c:url value='/resources/manifest.json'/>">
+    <link rel="apple-touch-icon" href="<c:url value='/resources/images/icon-180.png'/>">
+    <link rel="icon" type="image/png" href="<c:url value='/resources/images/icon-192.png'/>">
     <script>
         var contextPath = '${pageContext.request.contextPath}';
         // 화면 JS가 slug → 이름/색을 찾을 때 쓴다. 값은 category 테이블(관리자만 수정)

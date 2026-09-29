@@ -8,6 +8,9 @@
     <title>로그인 - Fashion Archive</title>
     <link rel="stylesheet" href="<c:url value='/resources/css/reset.css'/>?v=${applicationScope.assetVersion}">
     <link rel="stylesheet" href="<c:url value='/resources/css/fashion.css'/>?v=${applicationScope.assetVersion}">
+    <link rel="manifest" href="<c:url value='/resources/manifest.json'/>">
+    <link rel="apple-touch-icon" href="<c:url value='/resources/images/icon-180.png'/>">
+    <link rel="icon" type="image/png" href="<c:url value='/resources/images/icon-192.png'/>">
     <script>var contextPath = '${pageContext.request.contextPath}';</script>
     <script src="<c:url value='/resources/js/common/common.js'/>?v=${applicationScope.assetVersion}"></script>
     <script defer src="<c:url value='/resources/js/app/login/login.js'/>?v=${applicationScope.assetVersion}"></script>
