@@ -13,13 +13,13 @@ Tomcat과 PostgreSQL은 loopback에만 바인딩한다. 외부 요청은 nginx�
 
 ## 코드 변경 후 재배포
 
-서버의 `/var/www/html/p1`에서 실행한다.
+서버의 `/srv/devgear/fashion-archive`에서 실행한다.
 
 ```bash
 mvn test
 mvn -q package -DskipTests
 sudo docker compose up -d --build
-curl -I http://127.0.0.1/p1/
+curl -I https://devgear.kr/p1/
 ```
 
 ## Docker 운영 명령
@@ -77,4 +77,4 @@ docker context use default
 
 ## HTTPS
 
-현재는 공인 IP의 HTTP로 서비스한다. 도메인의 A 레코드를 서버 공인 IP로 연결한 뒤 Certbot으로 인증서를 발급한다. 도메인이 정해지기 전에는 인증서 설정을 추가하지 않는다.
+`https://devgear.kr/p1/`로 서비스한다. 인증서는 Certbot(nginx 플러그인)이 발급·갱신한다. 공인 IP나 HTTP로 들어온 요청은 nginx가 `https://devgear.kr`로 301 리다이렉트한다.
