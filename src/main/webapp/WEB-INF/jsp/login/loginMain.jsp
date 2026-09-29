@@ -26,7 +26,7 @@
         </label>
         <button type="submit" class="btn btn-primary">로그인</button>
     </form>
-    <p><a href="<c:url value='/'/>">홈으로</a></p>
+    <p>계정이 없으면 <a href="<c:url value='/signup'/>">회원가입</a></p>
 </main>
 </body>
 </html>

@@ -12,7 +12,7 @@ services:
     environment:
       CATALINA_OPTS: -Dtomcat.address=127.0.0.1
     volumes:
-      - /var/lib/fashion-archive/uploads:/data/fashion-uploads
+      - /srv/fashion-uploads:/data/fashion-uploads
     restart: unless-stopped
 
 

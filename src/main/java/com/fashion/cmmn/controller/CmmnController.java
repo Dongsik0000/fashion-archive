@@ -17,6 +17,14 @@ public class CmmnController {
         return "login/loginMain";
     }
 
+    @GetMapping("/signup")
+    public String signup(HttpSession session) {
+        if (session.getAttribute(Constants.SESSION_LOGIN_ID) != null) {
+            return "redirect:/";
+        }
+        return "login/signupMain";
+    }
+
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate();

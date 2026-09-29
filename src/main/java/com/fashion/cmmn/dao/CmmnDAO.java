@@ -22,4 +22,8 @@ public class CmmnDAO {
     public Map<String, Object> selectUserByLoginId(String loginId) {
         return sqlSession.selectOne(NS + "selectUserByLoginId", loginId);
     }
+
+    public void insertUser(Map<String, Object> param) {
+        sqlSession.insert(NS + "insertUser", param);
+    }
 }

@@ -18,6 +18,7 @@
          WHERE photo_id = #{photoId}
     </insert>
 
+    <!-- 수정·삭제: 링크에는 소유자 칸이 없어서 사진의 owner_id로 확인한다 -->
     <update id="updateLink" parameterType="java.util.HashMap">
         UPDATE product_link
            SET item_label = #{itemLabel},
@@ -25,10 +26,13 @@
                title      = #{title},
                note       = #{note}
          WHERE id = #{id}
+           AND photo_id IN (SELECT id FROM photo WHERE owner_id = #{ownerId})
     </update>
 
-    <delete id="deleteLink" parameterType="java.lang.Long">
-        DELETE FROM product_link WHERE id = #{id}
+    <delete id="deleteLink" parameterType="java.util.HashMap">
+        DELETE FROM product_link
+         WHERE id = #{id}
+           AND photo_id IN (SELECT id FROM photo WHERE owner_id = #{ownerId})
     </delete>
 
 </mapper>

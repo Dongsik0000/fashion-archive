@@ -36,9 +36,15 @@
     <bean id="multipartResolver" class="org.springframework.web.multipart.support.StandardServletMultipartResolver" />
 
     <mvc:interceptors>
+        <!-- 로그인·가입 화면과 정적 파일을 뺀 모든 요청은 로그인이 필요하다 -->
         <mvc:interceptor>
-            <mvc:mapping path="/admin/**" />
-            <mvc:mapping path="/api/admin/**" />
+            <mvc:mapping path="/**" />
+            <mvc:exclude-mapping path="/login" />
+            <mvc:exclude-mapping path="/logout" />
+            <mvc:exclude-mapping path="/signup" />
+            <mvc:exclude-mapping path="/api/login" />
+            <mvc:exclude-mapping path="/api/signup" />
+            <mvc:exclude-mapping path="/resources/**" />
             <bean class="com.fashion.cmmn.interceptor.LoginInterceptor" />
         </mvc:interceptor>
     </mvc:interceptors>

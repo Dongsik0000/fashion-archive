@@ -52,4 +52,32 @@ class ValidationTest {
         assertThrows(IllegalArgumentException.class, () -> Validation.imageExtension(new byte[]{1, 2}));
         assertThrows(IllegalArgumentException.class, () -> Validation.imageExtension(null));
     }
+
+    @Test
+    void isLoginId_allowsLowercaseDigitsUnderscoreHyphen() {
+        assertTrue(Validation.isLoginId("ds_kim1"));
+        assertTrue(Validation.isLoginId("a-b"));
+        assertTrue(Validation.isLoginId("a".repeat(30)));
+    }
+
+    // 폴더 이름으로 쓰이므로 경로 문자, 대문자, 공백, 한글과 길이 밖의 값은 막는다
+    @Test
+    void isLoginId_rejectsUnsafeOrOutOfRange() {
+        assertFalse(Validation.isLoginId(null));
+        assertFalse(Validation.isLoginId("ab"));
+        assertFalse(Validation.isLoginId("a".repeat(31)));
+        assertFalse(Validation.isLoginId(".."));
+        assertFalse(Validation.isLoginId("../etc"));
+        assertFalse(Validation.isLoginId("a/b"));
+        assertFalse(Validation.isLoginId("a.b"));
+        assertFalse(Validation.isLoginId("Admin"));
+        assertFalse(Validation.isLoginId("ds kim"));
+        assertFalse(Validation.isLoginId("사용자"));
+    }
+
+    @Test
+    void requireLoginId_trimsAndRejectsInvalid() {
+        assertEquals("ds_kim1", Validation.requireLoginId(" ds_kim1 "));
+        assertThrows(IllegalArgumentException.class, () -> Validation.requireLoginId("DS_KIM1"));
+    }
 }

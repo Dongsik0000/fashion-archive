@@ -5,7 +5,7 @@
 - 외부 요청: nginx 80/443
 - 애플리케이션: Docker의 Tomcat 9, `127.0.0.1:8080`
 - 데이터베이스: 호스트 PostgreSQL 16, `127.0.0.1:5432`
-- 업로드 파일: `/var/lib/fashion-archive/uploads`
+- 업로드 파일: `/srv/fashion-uploads/{로그인 아이디}/` (사용자별 폴더, 첫 업로드 때 생성)
 - 앱 비밀값: `/etc/fashion-archive/app.env`
 - nginx 설정 원본: `deploy/nginx-fashion-archive.conf`
 
@@ -43,6 +43,12 @@ sudo cat /etc/fashion-archive/admin-initial-password
 ```
 
 로그인 주소는 `/p1/login`이다. 비밀번호를 별도 비밀번호 관리자에 저장한 뒤 초기 비밀번호 파일은 삭제한다.
+
+## 회원가입 코드
+
+`/p1/signup`에서 가입하려면 가입 코드가 필요하다. 코드는 `/etc/fashion-archive/app.env`의 `FASHION_SIGNUP_CODE`에 둔다. 값이 비어 있거나 없으면 아무도 가입할 수 없다. 값을 바꾼 뒤에는 `sudo docker compose up -d`로 컨테이너를 다시 만든다.
+
+아이디는 영문 소문자·숫자·`_`·`-`로 3~30자만 쓸 수 있다. 아이디가 사진 폴더 이름으로 쓰이기 때문이다. 같은 IP에서 가입 코드를 5번 틀리면 5분 동안 가입이 막힌다. 가입한 계정은 `users.role`이 `USER`로 저장되고, 자기 사진만 보고 수정할 수 있다.
 
 ## DBeaver
 

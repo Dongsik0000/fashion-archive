@@ -17,4 +17,9 @@ public class CmmnServiceImpl implements CmmnService {
     public Map<String, Object> selectUserByLoginId(String loginId) {
         return cmmnDAO.selectUserByLoginId(loginId);
     }
+
+    @Override
+    public void insertUser(Map<String, Object> param) {
+        cmmnDAO.insertUser(param);
+    }
 }

@@ -25,8 +25,6 @@ public class PhotoController {
         return "/fashion/photo/detail";
     }
 
-    // 아래 두 화면은 LoginInterceptor(/admin/**)가 로그인 여부를 확인한다
-
     @GetMapping("/admin/photos/new")
     public String photoNew() {
         return "/fashion/admin/photoForm";

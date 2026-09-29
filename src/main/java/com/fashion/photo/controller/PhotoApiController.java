@@ -42,29 +42,29 @@ public class PhotoApiController {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    /* ---------- 조회 (공개) ---------- */
+    /* ---------- 조회. 모든 API는 LoginInterceptor를 지나므로 세션에 userId가 있다 ---------- */
 
-    // 사진 목록. slug가 없으면 전체
+    // 내 사진 목록. slug가 없으면 전체
     @ResponseBody
     @PostMapping("/api/photos/list")
-    public Response list(@RequestBody HashMap<String, Object> param) {
+    public Response list(@RequestBody HashMap<String, Object> param, HttpSession session) {
         try {
             Object slugObj = param.get("slug");
             String slug = (slugObj == null || slugObj.toString().isEmpty()) ? null : slugObj.toString();
-            return Response.of(Constants.SUCCESS, photoService.selectPhotoList(slug));
+            return Response.of(Constants.SUCCESS, photoService.selectPhotoList(ownerId(session), slug));
         } catch (Exception e) {
             logger.error("사진 목록 조회 중 오류", e);
             return Response.of(Constants.FAIL, "사진 목록을 불러오지 못했습니다.", null);
         }
     }
 
-    // 사진 상세: 사진 + 카테고리 id + 라벨별 링크
+    // 사진 상세: 사진 + 카테고리 id + 라벨별 링크. 다른 사용자의 사진은 없는 사진과 같은 응답
     @ResponseBody
     @PostMapping("/api/photos/detail")
-    public Response detail(@RequestBody HashMap<String, Object> param) {
+    public Response detail(@RequestBody HashMap<String, Object> param, HttpSession session) {
         try {
             long id = Long.parseLong(String.valueOf(param.get("id")));
-            Map<String, Object> photo = photoService.selectPhoto(id);
+            Map<String, Object> photo = photoService.selectPhoto(id, ownerId(session));
             if (photo == null) {
                 return Response.of(Constants.FAIL, "사진을 찾을 수 없습니다.", null);
             }
@@ -81,7 +81,7 @@ public class PhotoApiController {
         }
     }
 
-    /* ---------- 사진 등록/수정/삭제 (로그인 필요: /api/admin/** 는 LoginInterceptor가 막는다) ---------- */
+    /* ---------- 사진 등록/수정/삭제. 수정·삭제는 SQL 조건으로 본인 사진만 ---------- */
 
     // 등록. multipart: file, title, memo, categoryIds. 흐름: 검증 → Storage 업로드 → (트랜잭션) INSERT ×2
     @ResponseBody
@@ -100,12 +100,10 @@ public class PhotoApiController {
             String cleanTitle = Validation.requireText(title, "제목", 100);
             String cleanMemo = Validation.optionalText(memo, "메모", 2000);
             List<Integer> ids = requireCategories(categoryIds);
-            long ownerId = (Long) session.getAttribute(Constants.SESSION_USER_ID);
-
-            String imageUrl = storage.upload(bytes, ext);
+            String imageUrl = storage.upload((String) session.getAttribute(Constants.SESSION_LOGIN_ID), bytes, ext);
 
             Map<String, Object> photo = new HashMap<String, Object>();
-            photo.put("ownerId", ownerId);
+            photo.put("ownerId", ownerId(session));
             photo.put("title", cleanTitle);
             photo.put("memo", cleanMemo);
             photo.put("imageUrl", imageUrl);
@@ -135,7 +133,7 @@ public class PhotoApiController {
     // 수정. JSON: title, memo, categoryIds[]
     @ResponseBody
     @PostMapping("/api/admin/photos/{id}")
-    public Response update(@PathVariable long id, @RequestBody HashMap<String, Object> param) {
+    public Response update(@PathVariable long id, @RequestBody HashMap<String, Object> param, HttpSession session) {
         try {
             String title = Validation.requireText(param.get("title"), "제목", 100);
             String memo = Validation.optionalText(param.get("memo"), "메모", 2000);
@@ -143,6 +141,7 @@ public class PhotoApiController {
 
             Map<String, Object> photo = new HashMap<String, Object>();
             photo.put("id", id);
+            photo.put("ownerId", ownerId(session));
             photo.put("title", title);
             photo.put("memo", memo);
 
@@ -169,13 +168,13 @@ public class PhotoApiController {
     // 삭제. DB(CASCADE)가 먼저, 파일은 나중에. 파일 삭제 실패는 고아 파일로 남을 뿐 화면에는 영향 없음
     @ResponseBody
     @PostMapping("/api/admin/photos/{id}/delete")
-    public Response delete(@PathVariable long id) {
+    public Response delete(@PathVariable long id, HttpSession session) {
         try {
-            Map<String, Object> photo = photoService.selectPhoto(id);
-            if (photo == null) {
+            long ownerId = ownerId(session);
+            Map<String, Object> photo = photoService.selectPhoto(id, ownerId);
+            if (photo == null || photoService.deletePhoto(id, ownerId) == 0) {
                 return Response.of(Constants.FAIL, "사진을 찾을 수 없습니다.", null);
             }
-            photoService.deletePhoto(id);
             storage.delete((String) photo.get("image_url"));
             return Response.of(Constants.SUCCESS);
         } catch (Exception e) {
@@ -189,10 +188,10 @@ public class PhotoApiController {
     // 추가. JSON: itemLabel, url, title, note
     @ResponseBody
     @PostMapping("/api/admin/photos/{photoId}/links")
-    public Response addLink(@PathVariable long photoId, @RequestBody HashMap<String, Object> param) {
+    public Response addLink(@PathVariable long photoId, @RequestBody HashMap<String, Object> param, HttpSession session) {
         try {
             Map<String, Object> link = linkParam(param);
-            if (photoService.selectPhoto(photoId) == null) {
+            if (photoService.selectPhoto(photoId, ownerId(session)) == null) {
                 return Response.of(Constants.FAIL, "사진을 찾을 수 없습니다.", null);
             }
             link.put("photoId", photoId);
@@ -209,10 +208,11 @@ public class PhotoApiController {
     // 수정. JSON: itemLabel, url, title, note
     @ResponseBody
     @PostMapping("/api/admin/links/{linkId}")
-    public Response updateLink(@PathVariable long linkId, @RequestBody HashMap<String, Object> param) {
+    public Response updateLink(@PathVariable long linkId, @RequestBody HashMap<String, Object> param, HttpSession session) {
         try {
             Map<String, Object> link = linkParam(param);
             link.put("id", linkId);
+            link.put("ownerId", ownerId(session));
             if (photoService.updateLink(link) == 0) {
                 return Response.of(Constants.FAIL, "링크를 찾을 수 없습니다.", null);
             }
@@ -227,9 +227,9 @@ public class PhotoApiController {
 
     @ResponseBody
     @PostMapping("/api/admin/links/{linkId}/delete")
-    public Response deleteLink(@PathVariable long linkId) {
+    public Response deleteLink(@PathVariable long linkId, HttpSession session) {
         try {
-            if (photoService.deleteLink(linkId) == 0) {
+            if (photoService.deleteLink(linkId, ownerId(session)) == 0) {
                 return Response.of(Constants.FAIL, "링크를 찾을 수 없습니다.", null);
             }
             return Response.of(Constants.SUCCESS);
@@ -240,6 +240,11 @@ public class PhotoApiController {
     }
 
     /* ---------- 도우미 ---------- */
+
+    // 로그인한 사용자 id. CmmnApiController.login이 세션에 넣는다
+    private static long ownerId(HttpSession session) {
+        return (Long) session.getAttribute(Constants.SESSION_USER_ID);
+    }
 
     // 링크를 item_label별로 묶는다. 라벨이 처음 나온 순서(= 등록 순서)를 유지하기 위해 LinkedHashMap
     public static Map<String, List<Map<String, Object>>> groupLinks(List<Map<String, Object>> links) {

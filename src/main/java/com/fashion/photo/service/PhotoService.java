@@ -5,9 +5,9 @@ import java.util.Map;
 
 public interface PhotoService {
 
-    List<Map<String, Object>> selectPhotoList(String slug);
+    List<Map<String, Object>> selectPhotoList(long ownerId, String slug);
 
-    Map<String, Object> selectPhoto(long id);
+    Map<String, Object> selectPhoto(long id, long ownerId);
 
     List<Integer> selectPhotoCategoryIds(long photoId);
 
@@ -17,7 +17,7 @@ public interface PhotoService {
 
     int updatePhoto(Map<String, Object> param);
 
-    int deletePhoto(long id);
+    int deletePhoto(long id, long ownerId);
 
     void deletePhotoCategories(long photoId);
 
@@ -27,5 +27,5 @@ public interface PhotoService {
 
     int updateLink(Map<String, Object> param);
 
-    int deleteLink(long id);
+    int deleteLink(long id, long ownerId);
 }

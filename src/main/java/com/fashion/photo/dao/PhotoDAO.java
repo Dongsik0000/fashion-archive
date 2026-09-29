@@ -17,16 +17,17 @@ public class PhotoDAO {
     @Resource(name = "sqlSession")
     private SqlSessionTemplate sqlSession;
 
-    // 사진 목록
-    public List<Map<String, Object>> selectPhotoList(String slug) {
+    // 사진 목록 (ownerId의 사진만)
+    public List<Map<String, Object>> selectPhotoList(long ownerId, String slug) {
         Map<String, Object> param = new HashMap<String, Object>();
+        param.put("ownerId", ownerId);
         param.put("slug", slug);
         return sqlSession.selectList(NS + "selectPhotoList", param);
     }
 
-    // 사진 1장
-    public Map<String, Object> selectPhoto(long id) {
-        return sqlSession.selectOne(NS + "selectPhoto", id);
+    // 사진 1장. ownerId의 사진이 아니면 null
+    public Map<String, Object> selectPhoto(long id, long ownerId) {
+        return sqlSession.selectOne(NS + "selectPhoto", idAndOwner(id, ownerId));
     }
 
     // 사진이 속한 카테고리 id 목록
@@ -39,13 +40,13 @@ public class PhotoDAO {
         sqlSession.insert(NS + "insertPhoto", param);
     }
 
-    // 영향 행 수 (0이면 없는 id)
+    // 영향 행 수 (0이면 없는 id이거나 다른 사용자의 사진)
     public int updatePhoto(Map<String, Object> param) {
         return sqlSession.update(NS + "updatePhoto", param);
     }
 
-    public int deletePhoto(long id) {
-        return sqlSession.delete(NS + "deletePhoto", id);
+    public int deletePhoto(long id, long ownerId) {
+        return sqlSession.delete(NS + "deletePhoto", idAndOwner(id, ownerId));
     }
 
     public void deletePhotoCategories(long photoId) {
@@ -59,4 +60,10 @@ public class PhotoDAO {
         sqlSession.insert(NS + "insertPhotoCategories", param);
     }
 
+    static Map<String, Object> idAndOwner(long id, long ownerId) {
+        Map<String, Object> param = new HashMap<String, Object>();
+        param.put("id", id);
+        param.put("ownerId", ownerId);
+        return param;
+    }
 }

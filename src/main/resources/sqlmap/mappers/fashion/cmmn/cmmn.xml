@@ -14,4 +14,10 @@
          WHERE login_id = #{loginId}
     </select>
 
+    <!-- 회원가입. 가입자는 USER로 넣어 기존 관리자(ADMIN)와 구분한다. 아이디 중복은 UNIQUE 제약이 막는다 -->
+    <insert id="insertUser" parameterType="java.util.HashMap">
+        INSERT INTO users (login_id, password_hash, role)
+        VALUES (#{loginId}, #{passwordHash}, 'USER')
+    </insert>
+
 </mapper>

@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
-// /admin/**, /api/admin/** 에 매핑. 로그인 여부와 Ajax 여부를 판별한다.
+// 로그인·가입·정적 파일을 뺀 전체 경로에 매핑(dispatcher-servlet.xml). 로그인 여부와 Ajax 여부를 판별한다.
 public class LoginInterceptor implements HandlerInterceptor {
 
     @Override

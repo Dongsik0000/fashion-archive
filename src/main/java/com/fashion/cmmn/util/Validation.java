@@ -2,11 +2,27 @@ package com.fashion.cmmn.util;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.regex.Pattern;
 
 // 입력 검증. 실패 시 사용자에게 그대로 보여줄 메시지를 담은 IllegalArgumentException을 던진다
 public final class Validation {
 
+    // 아이디는 사진 폴더 이름(/srv/fashion-uploads/{아이디})으로도 쓰인다. 경로 문자(/, .)가 들어갈 수 없게 제한한다
+    private static final Pattern LOGIN_ID = Pattern.compile("[a-z0-9_-]{3,30}");
+
     private Validation() {
+    }
+
+    public static boolean isLoginId(String value) {
+        return value != null && LOGIN_ID.matcher(value).matches();
+    }
+
+    public static String requireLoginId(Object value) {
+        String s = requireText(value, "아이디", 30);
+        if (!isLoginId(s)) {
+            throw new IllegalArgumentException("아이디는 영문 소문자, 숫자, _, -로 3~30자 입력해주세요.");
+        }
+        return s;
     }
 
     public static String requireText(Object value, String field, int max) {

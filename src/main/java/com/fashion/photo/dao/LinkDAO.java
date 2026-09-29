@@ -24,12 +24,12 @@ public class LinkDAO {
         sqlSession.insert(NS + "insertLink", param);
     }
 
-    // 영향 행 수 (0이면 없는 id)
+    // 영향 행 수 (0이면 없는 id이거나 다른 사용자의 링크)
     public int updateLink(Map<String, Object> param) {
         return sqlSession.update(NS + "updateLink", param);
     }
 
-    public int deleteLink(long id) {
-        return sqlSession.delete(NS + "deleteLink", id);
+    public int deleteLink(long id, long ownerId) {
+        return sqlSession.delete(NS + "deleteLink", PhotoDAO.idAndOwner(id, ownerId));
     }
 }

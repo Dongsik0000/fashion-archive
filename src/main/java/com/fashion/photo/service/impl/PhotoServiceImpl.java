@@ -19,13 +19,13 @@ public class PhotoServiceImpl implements PhotoService {
     private LinkDAO linkDAO;
 
     @Override
-    public List<Map<String, Object>> selectPhotoList(String slug) {
-        return photoDAO.selectPhotoList(slug);
+    public List<Map<String, Object>> selectPhotoList(long ownerId, String slug) {
+        return photoDAO.selectPhotoList(ownerId, slug);
     }
 
     @Override
-    public Map<String, Object> selectPhoto(long id) {
-        return photoDAO.selectPhoto(id);
+    public Map<String, Object> selectPhoto(long id, long ownerId) {
+        return photoDAO.selectPhoto(id, ownerId);
     }
 
     @Override
@@ -49,8 +49,8 @@ public class PhotoServiceImpl implements PhotoService {
     }
 
     @Override
-    public int deletePhoto(long id) {
-        return photoDAO.deletePhoto(id);
+    public int deletePhoto(long id, long ownerId) {
+        return photoDAO.deletePhoto(id, ownerId);
     }
 
     @Override
@@ -74,7 +74,7 @@ public class PhotoServiceImpl implements PhotoService {
     }
 
     @Override
-    public int deleteLink(long id) {
-        return linkDAO.deleteLink(id);
+    public int deleteLink(long id, long ownerId) {
+        return linkDAO.deleteLink(id, ownerId);
     }
 }
