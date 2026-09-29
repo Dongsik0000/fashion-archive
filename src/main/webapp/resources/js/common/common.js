@@ -25,7 +25,9 @@ App.error = function (title, message) {
 App.sessionExpired = function () {
     App.toast('로그인이 필요합니다. 로그인 화면으로 이동합니다.', 'error');
     setTimeout(function () {
-        window.location.href = contextPath + '/login?next=' + encodeURIComponent(location.pathname + location.search);
+        // location.pathname에는 컨텍스트 경로(/p1)가 들어 있고 login.js가 다시 붙이므로 빼고 넘긴다
+        var path = location.pathname.substring(contextPath.length);
+        window.location.href = contextPath + '/login?next=' + encodeURIComponent(path + location.search);
     }, 900);
     return new Promise(function () {});   // 체인 중단
 };
