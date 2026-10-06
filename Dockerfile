@@ -6,4 +6,6 @@ RUN sed -i 's/<Connector port="8080"/<Connector address="${tomcat.address}" port
 COPY src/main/webapp/META-INF/context.xml /usr/local/tomcat/conf/Catalina/localhost/p1.xml
 RUN rm -rf /usr/local/tomcat/webapps/*
 COPY target/fashion-archive.war /usr/local/tomcat/webapps/p1.war
+# 힙 상한을 정하지 않으면 JVM이 서버 메모리의 1/4(약 2.4GB)까지 키운다. 한 서버에 여러 앱을 띄우므로 고정한다
+ENV JAVA_OPTS="-Xms128m -Xmx384m"
 EXPOSE 8080

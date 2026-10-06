@@ -13,6 +13,8 @@ services:
       CATALINA_OPTS: -Dtomcat.address=127.0.0.1
     volumes:
       - /srv/fashion-uploads:/data/fashion-uploads
+    # 힙 384m(Dockerfile -Xmx) + 힙 밖(메타스페이스·스레드·코드 캐시) 여유. 한 앱이 서버 메모리를 다 쓰지 못하게 막는다
+    mem_limit: 640m
     restart: unless-stopped
 
 
