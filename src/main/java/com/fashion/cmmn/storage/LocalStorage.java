@@ -14,7 +14,7 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.UUID;
 
-// 로컬 디스크 저장. 업로드: {uploadDir}/{loginId}/{file} 쓰기, 공개 URL: {baseUrl}/{loginId}/{file} (nginx가 정적 파일로 서빙)
+// 로컬 디스크 저장. 업로드: {uploadDir}/{loginId}/{file} 쓰기, DB 기록: {baseUrl}/{loginId}/{file}. 파일은 PhotoApiController가 본인에게만 내려준다
 @Component
 public class LocalStorage {
 
@@ -46,25 +46,33 @@ public class LocalStorage {
         return baseUrl + "/" + loginId + "/" + name;
     }
 
+    // 저장된 URL이 가리키는 파일. URL 형식이 다르거나 파일이 없으면 null
+    public Path find(String url) {
+        Path file = pathOf(url);
+        return file != null && Files.isRegularFile(file) ? file : null;
+    }
+
     // 실패해도 예외를 던지지 않는다 (고아 파일은 허용, DB 불일치는 불허)
-    public void delete(String publicUrl) {
-        String marker = (baseUrl == null || baseUrl.isEmpty()) ? null : baseUrl + "/";
-        int idx = (publicUrl == null || marker == null) ? -1 : publicUrl.indexOf(marker);
-        if (idx < 0) {
-            logger.warn("Storage delete skipped, unexpected url: {}", publicUrl);
-            return;
-        }
-        String name = publicUrl.substring(idx + marker.length());
-        Path file = storedPath(uploadDir, name);
+    public void delete(String url) {
+        Path file = pathOf(url);
         if (file == null) {
-            logger.warn("Storage delete skipped, unsafe file name: {}", name);
+            logger.warn("Storage delete skipped, unexpected url: {}", url);
             return;
         }
         try {
             Files.deleteIfExists(file);
         } catch (IOException e) {
-            logger.warn("Storage delete failed: {}", name, e);
+            logger.warn("Storage delete failed: {}", url, e);
         }
+    }
+
+    private Path pathOf(String url) {
+        if (url == null || baseUrl == null || baseUrl.isEmpty()) {
+            return null;
+        }
+        String marker = baseUrl + "/";
+        int idx = url.indexOf(marker);
+        return idx < 0 ? null : storedPath(uploadDir, url.substring(idx + marker.length()));
     }
 
     // "{loginId}/{file}" → 디스크 경로. 형식이 다르거나 경로를 벗어날 수 있는 이름이면 null

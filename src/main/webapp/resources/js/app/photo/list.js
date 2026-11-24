@@ -47,7 +47,7 @@ App.photoList = (function(){
 					date = document.createElement('time');
 
 				a.href = contextPath + '/photos/' + p.id;
-				img.src = p.image_url;
+				img.src = contextPath + '/photos/' + p.id + '/image';
 				img.alt = p.title;
 				img.loading = 'lazy';
 				title.className = 'photo-title';

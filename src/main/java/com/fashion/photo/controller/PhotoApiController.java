@@ -8,8 +8,14 @@ import com.fashion.photo.service.PhotoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +25,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -79,6 +87,23 @@ public class PhotoApiController {
             logger.error("사진 상세 조회 중 오류", e);
             return Response.of(Constants.FAIL, "사진을 불러오지 못했습니다.", null);
         }
+    }
+
+    // 사진 파일. 다른 사용자의 사진은 없는 사진과 같은 404. no-cache: 로그아웃 뒤 브라우저 캐시로 보이지 않게 매번 확인받는다
+    @GetMapping("/photos/{id}/image")
+    public ResponseEntity<FileSystemResource> image(@PathVariable long id, HttpSession session) throws IOException {
+        Map<String, Object> photo = photoService.selectPhoto(id, ownerId(session));
+        Path file = photo == null ? null : storage.find((String) photo.get("image_url"));
+        if (file == null) {
+            return ResponseEntity.notFound().build();
+        }
+        FileSystemResource image = new FileSystemResource(file);
+        return ResponseEntity.ok()
+                .contentType(MediaTypeFactory.getMediaType(image).orElse(MediaType.APPLICATION_OCTET_STREAM))
+                .cacheControl(CacheControl.noCache().cachePrivate())
+                .lastModified(image.lastModified())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(image);
     }
 
     /* ---------- 사진 등록/수정/삭제. 수정·삭제는 SQL 조건으로 본인 사진만 ---------- */

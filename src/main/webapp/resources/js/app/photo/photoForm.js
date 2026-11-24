@@ -67,7 +67,7 @@ App.photoForm = (function(){
 			var photo = res.data.photo,
 				ids = res.data.categoryIds || [];
 
-			m$.preview.src = photo.image_url;
+			m$.preview.src = contextPath + '/photos/' + photo.id + '/image';
 			m$.form.elements.title.value = photo.title;
 			m$.form.elements.memo.value = photo.memo || '';
 			m$.form.querySelectorAll('input[name=categoryIds]').forEach(function(cb){

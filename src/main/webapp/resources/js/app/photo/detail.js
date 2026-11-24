@@ -78,7 +78,7 @@ App.photoDetail = (function(){
 		render = function(data){
 			var photo = data.photo;
 
-			m$.image.src = photo.image_url;
+			m$.image.src = contextPath + '/photos/' + photo.id + '/image';
 			m$.image.alt = photo.title;
 			m$.title.textContent = photo.title;
 			m$.date.textContent = formatDate(photo.created_at);
