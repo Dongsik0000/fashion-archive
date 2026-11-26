@@ -2,3 +2,6 @@ target/
 .idea/
 *.iml
 .deptree.txt
+
+# 서버 비밀값 (deploy/app.env)
+app.env
